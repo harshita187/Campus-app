@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiUpload, FiX } from 'react-icons/fi';
+import { useAuth } from '../context/AuthContext';
 import './AddProduct.css';
 
 const AddProduct = ({ onAddProduct }) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     title: '',
     price: '',
@@ -15,6 +17,16 @@ const AddProduct = ({ onAddProduct }) => {
     contact: '',
     images: ['https://via.placeholder.com/400x300?text=Product+Image']
   });
+
+  useEffect(() => {
+    if (user) {
+      setFormData(prev => ({
+        ...prev,
+        seller: user.name || '',
+        contact: user.email || ''
+      }));
+    }
+  }, [user]);
 
   const [errors, setErrors] = useState({});
 
@@ -43,8 +55,6 @@ const AddProduct = ({ onAddProduct }) => {
     if (!formData.title.trim()) newErrors.title = 'Title is required';
     if (!formData.price || formData.price <= 0) newErrors.price = 'Valid price is required';
     if (!formData.description.trim()) newErrors.description = 'Description is required';
-    if (!formData.seller.trim()) newErrors.seller = 'Seller name is required';
-    if (!formData.contact.trim()) newErrors.contact = 'Contact information is required';
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -156,7 +166,7 @@ const AddProduct = ({ onAddProduct }) => {
             
             <div className="form-row">
               <div className="form-group">
-                <label htmlFor="seller">Your Name *</label>
+                <label htmlFor="seller">Your Name</label>
                 <input
                   type="text"
                   id="seller"
@@ -164,13 +174,13 @@ const AddProduct = ({ onAddProduct }) => {
                   value={formData.seller}
                   onChange={handleChange}
                   placeholder="Your full name"
-                  className={errors.seller ? 'error' : ''}
+                  readOnly
+                  className="readonly-input"
                 />
-                {errors.seller && <span className="error-message">{errors.seller}</span>}
               </div>
 
               <div className="form-group">
-                <label htmlFor="contact">Contact Email *</label>
+                <label htmlFor="contact">Contact Email</label>
                 <input
                   type="email"
                   id="contact"
@@ -178,9 +188,9 @@ const AddProduct = ({ onAddProduct }) => {
                   value={formData.contact}
                   onChange={handleChange}
                   placeholder="your.email@college.edu"
-                  className={errors.contact ? 'error' : ''}
+                  readOnly
+                  className="readonly-input"
                 />
-                {errors.contact && <span className="error-message">{errors.contact}</span>}
               </div>
             </div>
           </div>

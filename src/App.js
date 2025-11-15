@@ -1,10 +1,14 @@
 import React, { useState } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "./context/AuthContext";
 import Header from "./components/Header";
 import Home from "./components/Home";
 import ProductList from "./components/ProductList";
 import AddProduct from "./components/AddProduct";
 import ProductDetail from "./components/ProductDetail";
+import Login from "./components/Login";
+import Signup from "./components/Signup";
+import ProtectedRoute from "./components/ProtectedRoute";
 import "./App.css";
 
 function App() {
@@ -73,23 +77,31 @@ function App() {
   };
 
   return (
-    <Router>
-      <div className="App">
-        <Header />
-        <Routes>
-          <Route path="/" element={<Home products={products} />} />
-          <Route path="/products" element={<ProductList />} />
-          <Route
-            path="/add-product"
-            element={<AddProduct onAddProduct={addProduct} />}
-          />
-          <Route
-            path="/product/:id"
-            element={<ProductDetail products={products} />}
-          />
-        </Routes>
-      </div>
-    </Router>
+    <AuthProvider>
+      <Router>
+        <div className="App">
+          <Header />
+          <Routes>
+            <Route path="/" element={<Home products={products} />} />
+            <Route path="/products" element={<ProductList />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route
+              path="/add-product"
+              element={
+                <ProtectedRoute>
+                  <AddProduct onAddProduct={addProduct} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/product/:id"
+              element={<ProductDetail products={products} />}
+            />
+          </Routes>
+        </div>
+      </Router>
+    </AuthProvider>
   );
 }
 

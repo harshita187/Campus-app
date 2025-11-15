@@ -92,6 +92,12 @@
   border-color: #f56565;
 }
 
+.readonly-input {
+  background: #f1f5f9;
+  cursor: not-allowed;
+  color: #64748b;
+}
+
 .error-message {
   color: #f56565;
   font-size: 0.875rem;
