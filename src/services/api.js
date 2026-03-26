@@ -16,45 +16,15 @@ const getApiUrl = () => {
 };
 
 const API_URL = getApiUrl();
+const SOCKET_URL = API_URL.replace(/\/api$/, "");
 
 const apiClient = axios.create({
   baseURL: API_URL,
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
 });
-
-const generateCurlCommand = (config) => {
-  const { method, url, data, headers } = config;
-  const fullUrl = url.startsWith("http")
-    ? url
-    : `${API_URL}${url.startsWith("/") ? url : "/" + url}`;
-
-  let curlCommand = `curl -X ${method.toUpperCase()} '${fullUrl}'`;
-
-  const allHeaders = { ...headers };
-  if (!allHeaders["Content-Type"] && !allHeaders["content-type"]) {
-    allHeaders["Content-Type"] = "application/json";
-  }
-
-  Object.entries(allHeaders).forEach(([key, value]) => {
-    curlCommand += ` \\\n  -H '${key}: ${value}'`;
-  });
-
-  if (
-    data &&
-    (method.toLowerCase() === "post" ||
-      method.toLowerCase() === "put" ||
-      method.toLowerCase() === "patch")
-  ) {
-    const jsonData =
-      typeof data === "string" ? data : JSON.stringify(data, null, 2);
-    const escapedData = jsonData.replace(/'/g, "'\\''");
-    curlCommand += ` \\\n  -d '${escapedData}'`;
-  }
-
-  return curlCommand;
-};
 
 apiClient.interceptors.request.use(
   (config) => {
@@ -62,48 +32,36 @@ apiClient.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-
-    const curlCommand = generateCurlCommand(config);
-    console.log("📡 API Request:", config.method.toUpperCase(), config.url);
-    console.log("💻 cURL Command:");
-    console.log(curlCommand);
-    console.log("📦 Request Data:", config.data || "No data");
-
     return config;
   },
-  (error) => {
-    console.error("❌ Request Error:", error);
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 apiClient.interceptors.response.use(
-  (response) => {
-    console.log(
-      "✅ API Response:",
-      response.config.method.toUpperCase(),
-      response.config.url
-    );
-    console.log("📦 Response Data:", response.data);
-    return response;
-  },
-  (error) => {
-    console.error(
-      "❌ API Error:",
-      error.config?.method?.toUpperCase(),
-      error.config?.url
-    );
-    if (error.response) {
-      console.error("📦 Error Response:", error.response.data);
-      console.error("📊 Status:", error.response.status);
-    } else if (error.request) {
-      console.error("📡 No response received:", error.request);
-    } else {
-      console.error("❌ Error:", error.message);
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+    const isUnauthorized = error.response?.status === 401;
+    const isRefreshCall = originalRequest?.url?.includes("/auth/refresh");
+
+    if (isUnauthorized && !originalRequest?._retry && !isRefreshCall) {
+      originalRequest._retry = true;
+      try {
+        const refreshResponse = await apiClient.post("/auth/refresh");
+        const token = refreshResponse.data?.token;
+        if (token) {
+          localStorage.setItem("token", token);
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+        }
+        return apiClient(originalRequest);
+      } catch (_refreshError) {
+        localStorage.removeItem("token");
+      }
     }
+
     return Promise.reject(error);
   }
 );
 
 export default apiClient;
-export { API_URL };
+export { API_URL, SOCKET_URL };

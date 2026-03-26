@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { FiHome, FiList, FiPlus, FiUser, FiLogIn, FiLogOut } from "react-icons/fi";
+import { FiHome, FiList, FiPlus, FiUser, FiLogIn, FiLogOut, FiMessageCircle } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
 import "./Header.css";
 
@@ -34,6 +34,12 @@ const Header = () => {
             <Link to="/add-product" className="nav-link">
               <FiPlus />
               Sell Item
+            </Link>
+          )}
+          {isAuthenticated && (
+            <Link to="/chat" className="nav-link">
+              <FiMessageCircle />
+              Chats
             </Link>
           )}
         </nav>

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiUpload, FiX } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
+import { productService } from '../services/productService';
+import { uploadService } from '../services/uploadService';
 import './AddProduct.css';
 
-const AddProduct = ({ onAddProduct }) => {
+const AddProduct = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [formData, setFormData] = useState({
@@ -29,6 +30,7 @@ const AddProduct = ({ onAddProduct }) => {
   }, [user]);
 
   const [errors, setErrors] = useState({});
+  const [uploading, setUploading] = useState(false);
 
   const categories = ['Notes', 'Cycle', 'Dress', 'Cooler', 'Electronics', 'Others'];
   const conditions = ['Like New', 'Excellent', 'Good', 'Fair'];
@@ -55,23 +57,53 @@ const AddProduct = ({ onAddProduct }) => {
     if (!formData.title.trim()) newErrors.title = 'Title is required';
     if (!formData.price || formData.price <= 0) newErrors.price = 'Valid price is required';
     if (!formData.description.trim()) newErrors.description = 'Description is required';
+    if (!formData.images || formData.images.length === 0) newErrors.images = 'At least one image is required';
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleImageUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    setUploading(true);
+    try {
+      const uploaded = [];
+      for (const file of files.slice(0, 5)) {
+        const result = await uploadService.uploadImage(file);
+        uploaded.push(result.url);
+      }
+
+      setFormData((prev) => ({
+        ...prev,
+        images: uploaded,
+      }));
+      setErrors((prev) => ({ ...prev, images: '' }));
+    } catch (error) {
+      setErrors((prev) => ({
+        ...prev,
+        images: error.response?.data?.message || 'Image upload failed',
+      }));
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (validateForm()) {
-      onAddProduct({
-        ...formData,
-        price: parseFloat(formData.price)
-      });
-      
-      // Show success message and redirect
-      alert('Product listed successfully!');
-      navigate('/products');
+      try {
+        await productService.create({
+          ...formData,
+          price: parseFloat(formData.price),
+        });
+        alert('Product listed successfully!');
+        navigate('/products');
+      } catch (error) {
+        alert(error.response?.data?.message || 'Failed to create product');
+      }
     }
   };
 
@@ -197,6 +229,18 @@ const AddProduct = ({ onAddProduct }) => {
 
           <div className="form-section">
             <h2>Product Preview</h2>
+            <div className="form-group">
+              <label htmlFor="images">Product Images *</label>
+              <input
+                type="file"
+                id="images"
+                accept="image/*"
+                multiple
+                onChange={handleImageUpload}
+              />
+              {uploading && <span className="error-message">Uploading images...</span>}
+              {errors.images && <span className="error-message">{errors.images}</span>}
+            </div>
             <div className="product-preview">
               <div className="preview-image">
                 <img src={formData.images[0]} alt="Product preview" />
@@ -215,8 +259,8 @@ const AddProduct = ({ onAddProduct }) => {
             <button type="button" onClick={() => navigate('/')} className="btn btn-secondary">
               Cancel
             </button>
-            <button type="submit" className="btn btn-primary">
-              List Product
+            <button type="submit" className="btn btn-primary" disabled={uploading}>
+              {uploading ? 'Please wait...' : 'List Product'}
             </button>
           </div>
         </form>

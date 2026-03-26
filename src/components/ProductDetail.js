@@ -1,5 +1,5 @@
-import React from "react";
-import { useParams, Link } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   FiArrowLeft,
   FiUser,
@@ -9,10 +9,39 @@ import {
   FiMapPin,
 } from "react-icons/fi";
 import "./ProductDetail.css";
+import { productService } from "../services/productService";
+import { useAuth } from "../context/AuthContext";
 
-const ProductDetail = ({ products }) => {
+const ProductDetail = () => {
   const { id } = useParams();
-  const product = products.find((p) => p.id === parseInt(id));
+  const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuth();
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        const data = await productService.getById(id);
+        setProduct(data);
+      } catch (_error) {
+        setProduct(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProduct();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="product-detail">
+        <div className="container">
+          <p>Loading product...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!product) {
     return (
@@ -39,6 +68,8 @@ const ProductDetail = ({ products }) => {
       day: "numeric",
     });
   };
+
+  const isOwnProduct = product && (product.sellerId?._id === user?.id || product.sellerId?._id === user?._id);
 
   return (
     <div className="product-detail">
@@ -87,7 +118,7 @@ const ProductDetail = ({ products }) => {
                   <FiClock className="detail-icon" />
                   <span className="detail-label">Posted:</span>
                   <span className="detail-value">
-                    {formatDate(product.datePosted)}
+                    {formatDate(product.createdAt || product.datePosted)}
                   </span>
                 </div>
                 <div className="detail-item">
@@ -105,11 +136,11 @@ const ProductDetail = ({ products }) => {
                   <FiUser />
                 </div>
                 <div className="seller-details">
-                  <h4>{product.seller}</h4>
+                  <h4>{product.sellerId?.name || "Seller"}</h4>
                   <p>Fellow Student</p>
                   <div className="contact-info">
                     <FiMail />
-                    <span>{product.contact}</span>
+                    <span>{product.sellerId?.email || "Not available"}</span>
                   </div>
                 </div>
               </div>
@@ -117,16 +148,21 @@ const ProductDetail = ({ products }) => {
 
             <div className="action-buttons">
               <a
-                href={`mailto:${product.contact}?subject=Interest in ${product.title}&body=Hi ${product.seller},%0A%0AI'm interested in your ${product.title} listed for ₹${product.price}. Can we arrange a meeting on campus?%0A%0AThanks!`}
+                href={`mailto:${product.sellerId?.email || ""}?subject=Interest in ${product.title}&body=Hi ${product.sellerId?.name || "there"},%0A%0AI'm interested in your ${product.title} listed for ₹${product.price}. Can we arrange a meeting on campus?%0A%0AThanks!`}
                 className="btn btn-primary"
               >
                 <FiMail />
                 Contact Seller
               </a>
-              <button className="btn btn-secondary">
-                <FiUser />
-                Save for Later
-              </button>
+              {isAuthenticated && !isOwnProduct && (
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => navigate(`/chat/product/${product._id || id}`)}
+                >
+                  <FiUser />
+                  Chat with Seller
+                </button>
+              )}
             </div>
 
             <div className="safety-notice">

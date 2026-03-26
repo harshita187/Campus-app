@@ -14,7 +14,7 @@ const ProductCard = ({ product }) => {
 
   return (
     <div className="product-card">
-      <Link to={`/product/${product.id}`} className="product-link">
+      <Link to={`/product/${product._id || product.id}`} className="product-link">
         <div className="product-image">
           <img src={product.images[0]} alt={product.title} />
           <div className="product-condition">
@@ -31,11 +31,11 @@ const ProductCard = ({ product }) => {
           <div className="product-meta">
             <div className="product-seller">
               <FiUser />
-              {product.seller}
+              {product.sellerId?.name || product.seller || "Unknown seller"}
             </div>
             <div className="product-date">
               <FiClock />
-              {formatDate(product.datePosted)}
+              {formatDate(product.createdAt || product.datePosted)}
             </div>
           </div>
         </div>
