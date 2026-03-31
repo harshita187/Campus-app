@@ -105,6 +105,13 @@
   display: block;
 }
 
+.upload-hint {
+  color: #64748b;
+  font-size: 0.82rem;
+  margin-top: 0.35rem;
+  display: block;
+}
+
 .form-group textarea {
   resize: vertical;
   min-height: 100px;

@@ -18,6 +18,11 @@ function App() {
 
   useEffect(() => {
     const loadFeatured = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setFeaturedProducts([]);
+        return;
+      }
       try {
         const data = await productService.list({ limit: 3, sort: "newest" });
         setFeaturedProducts(data.items || []);
@@ -34,8 +39,22 @@ function App() {
         <div className="App">
           <Header />
           <Routes>
-            <Route path="/" element={<Home products={featuredProducts} />} />
-            <Route path="/products" element={<ProductList />} />
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <Home products={featuredProducts} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/products"
+              element={
+                <ProtectedRoute>
+                  <ProductList />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route
@@ -46,7 +65,14 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            <Route path="/product/:id" element={<ProductDetail />} />
+            <Route
+              path="/product/:id"
+              element={
+                <ProtectedRoute>
+                  <ProductDetail />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/chat"
               element={
@@ -60,6 +86,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <ChatPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="*"
+              element={
+                <ProtectedRoute>
+                  <Home products={featuredProducts} />
                 </ProtectedRoute>
               }
             />

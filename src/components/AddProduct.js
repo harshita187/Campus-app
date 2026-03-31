@@ -3,7 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { productService } from '../services/productService';
 import { uploadService } from '../services/uploadService';
+import { SOCKET_URL } from "../services/api";
 import './AddProduct.css';
+
+const FALLBACK_IMAGE =
+  "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='640' height='420' viewBox='0 0 640 420'><rect width='640' height='420' fill='%23eef2ff'/><rect x='210' y='130' width='220' height='140' rx='16' fill='%23c7d2fe'/><text x='320' y='305' text-anchor='middle' fill='%23475569' font-family='Arial' font-size='24'>No Image</text></svg>";
 
 const AddProduct = () => {
   const navigate = useNavigate();
@@ -31,6 +35,13 @@ const AddProduct = () => {
 
   const [errors, setErrors] = useState({});
   const [uploading, setUploading] = useState(false);
+
+  const getResolvedImage = (src) => {
+    if (!src || typeof src !== "string") return FALLBACK_IMAGE;
+    if (src.startsWith("http://") || src.startsWith("https://")) return src;
+    if (src.startsWith("/")) return `${SOCKET_URL}${src}`;
+    return `${SOCKET_URL}/uploads/${src}`;
+  };
 
   const categories = ['Notes', 'Cycle', 'Dress', 'Cooler', 'Electronics', 'Others'];
   const conditions = ['Like New', 'Excellent', 'Good', 'Fair'];
@@ -238,12 +249,19 @@ const AddProduct = () => {
                 multiple
                 onChange={handleImageUpload}
               />
+              <span className="upload-hint">Upload up to 5 images, max 15MB each.</span>
               {uploading && <span className="error-message">Uploading images...</span>}
               {errors.images && <span className="error-message">{errors.images}</span>}
             </div>
             <div className="product-preview">
               <div className="preview-image">
-                <img src={formData.images[0]} alt="Product preview" />
+                <img
+                  src={getResolvedImage(formData.images[0])}
+                  alt="Product preview"
+                  onError={(e) => {
+                    e.currentTarget.src = FALLBACK_IMAGE;
+                  }}
+                />
               </div>
               <div className="preview-info">
                 <h3>{formData.title || 'Product Title'}</h3>

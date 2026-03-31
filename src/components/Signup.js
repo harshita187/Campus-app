@@ -180,7 +180,7 @@ const Signup = () => {
             </div>
           </div>
 
-          <button type="submit" className="btn-signup" disabled={loading}>
+          <button type="submit" className="signup-submit-btn" disabled={loading}>
             {loading ? 'Creating account...' : 'Create Account'}
           </button>
         </form>

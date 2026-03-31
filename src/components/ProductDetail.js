@@ -11,6 +11,10 @@ import {
 import "./ProductDetail.css";
 import { productService } from "../services/productService";
 import { useAuth } from "../context/AuthContext";
+import { SOCKET_URL } from "../services/api";
+
+const FALLBACK_IMAGE =
+  "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='900' height='600' viewBox='0 0 900 600'><rect width='900' height='600' fill='%23eef2ff'/><rect x='300' y='180' width='300' height='190' rx='20' fill='%23c7d2fe'/><text x='450' y='420' text-anchor='middle' fill='%23475569' font-family='Arial' font-size='32'>No Image</text></svg>";
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -70,6 +74,15 @@ const ProductDetail = () => {
   };
 
   const isOwnProduct = product && (product.sellerId?._id === user?.id || product.sellerId?._id === user?._id);
+  const firstImage = product?.images?.[0];
+  const resolvedImage =
+    !firstImage
+      ? FALLBACK_IMAGE
+      : firstImage.startsWith("http://") || firstImage.startsWith("https://")
+        ? firstImage
+        : firstImage.startsWith("/")
+          ? `${SOCKET_URL}${firstImage}`
+          : `${SOCKET_URL}/uploads/${firstImage}`;
 
   return (
     <div className="product-detail">
@@ -84,7 +97,13 @@ const ProductDetail = () => {
         <div className="product-content">
           <div className="product-images">
             <div className="main-image">
-              <img src={product.images[0]} alt={product.title} />
+              <img
+                src={resolvedImage}
+                alt={product.title}
+                onError={(e) => {
+                  e.currentTarget.src = FALLBACK_IMAGE;
+                }}
+              />
               <div className="condition-badge">
                 <FiTag />
                 {product.condition}

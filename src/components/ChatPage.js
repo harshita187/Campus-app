@@ -67,7 +67,11 @@ const ChatPage = () => {
 
   const handleSend = async (e) => {
     e.preventDefault();
-    if (!text.trim() || !conversationId) return;
+    if (!text.trim()) return;
+    if (!conversationId) {
+      setError("Start chat from a product page first, then send messages here.");
+      return;
+    }
     try {
       await chatService.sendMessage(conversationId, text.trim());
       setText("");
@@ -97,7 +101,11 @@ const ChatPage = () => {
         {error && <div className="chat-error">{error}</div>}
 
         <div className="chat-messages">
-          {messages.length === 0 ? (
+          {!conversationId ? (
+            <p className="chat-empty">
+              No active conversation yet. Open any product and click "Chat with Seller".
+            </p>
+          ) : messages.length === 0 ? (
             <p className="chat-empty">Start conversation with seller.</p>
           ) : (
             messages.map((message) => {
@@ -121,9 +129,16 @@ const ChatPage = () => {
             type="text"
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="Type your message..."
+            placeholder={
+              conversationId
+                ? "Type your message..."
+                : "Open a product and start a chat first..."
+            }
+            disabled={!conversationId}
           />
-          <button type="submit">Send</button>
+          <button type="submit" disabled={!conversationId || !text.trim()}>
+            Send
+          </button>
         </form>
       </div>
     </div>
