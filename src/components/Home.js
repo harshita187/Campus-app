@@ -116,29 +116,69 @@ const Home = ({ products }) => {
         <div className="container">
           <h2>Popular Categories</h2>
           <div className="categories-grid">
-            <Link className="category-card" to="/products">
+            <Link className="category-card" to="/products?category=Notes">
               <span className="category-icon">📚</span>
-              <h3>Notes & Books</h3>
-              <p>Textbooks, study materials, notes</p>
+              <h3>Notes</h3>
+              <p>Study materials and notes</p>
             </Link>
-            <Link className="category-card" to="/products">
+            <Link className="category-card" to="/products?category=Cycle">
               <span className="category-icon">🚲</span>
-              <h3>Vehicles</h3>
-              <p>Bicycles, scooters, bikes</p>
+              <h3>Cycle</h3>
+              <p>Bicycles and accessories</p>
             </Link>
-            <Link className="category-card" to="/products">
+            <Link className="category-card" to="/products?category=Dress">
               <span className="category-icon">👕</span>
-              <h3>Clothing</h3>
-              <p>Formal wear, casual clothes</p>
+              <h3>Dress</h3>
+              <p>Clothing and apparel</p>
             </Link>
-            <Link className="category-card" to="/products">
+            <Link className="category-card" to="/products?category=Cooler">
               <span className="category-icon">❄️</span>
+              <h3>Cooler</h3>
+              <p>Coolers and appliances</p>
+            </Link>
+            <Link className="category-card" to="/products?category=Electronics">
+              <span className="category-icon">💻</span>
               <h3>Electronics</h3>
-              <p>Coolers, gadgets, appliances</p>
+              <p>Gadgets and devices</p>
+            </Link>
+            <Link className="category-card" to="/products?category=Furniture">
+              <span className="category-icon">🪑</span>
+              <h3>Furniture</h3>
+              <p>Chairs, tables, and more</p>
             </Link>
           </div>
         </div>
       </section>
+
+      {/* Footer */}
+      <footer className="footer">
+        <div className="container">
+          <div className="footer-content">
+            <div className="footer-section">
+              <h3>Campus App</h3>
+              <p>Your trusted campus marketplace for buying and selling essentials.</p>
+            </div>
+            <div className="footer-section">
+              <h4>Quick Links</h4>
+              <ul>
+                <li><Link to="/products">Browse Products</Link></li>
+                <li><Link to="/add-product">Sell Product</Link></li>
+                <li><Link to="/chat">Messages</Link></li>
+              </ul>
+            </div>
+            <div className="footer-section">
+              <h4>Support</h4>
+              <ul>
+                <li><a href="mailto:support@campusapp.com">Contact Us</a></li>
+                <li><a href="#">Help Center</a></li>
+              </ul>
+            </div>
+          </div>
+          <div className="footer-bottom">
+            <p>&copy; 2024 Campus App. All rights reserved.</p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };
