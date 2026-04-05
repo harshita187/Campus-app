@@ -159,6 +159,63 @@
   font-size: 0.93rem;
 }
 
+.how-it-works {
+  padding: 4rem 0;
+  background: #f8fafc;
+}
+
+.how-it-works h2 {
+  text-align: center;
+  font-size: clamp(1.8rem, 4vw, 2.4rem);
+  color: #0f172a;
+  margin-bottom: 2.1rem;
+}
+
+.steps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.15rem;
+}
+
+.step-card {
+  text-align: center;
+  padding: 1.35rem;
+  border-radius: 1rem;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.step-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+}
+
+.step-number {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #4f46e5;
+  margin-bottom: 0.5rem;
+}
+
+.step-icon {
+  font-size: 1.8rem;
+  color: #4f46e5;
+  margin-bottom: 0.8rem;
+}
+
+.step-card h3 {
+  font-size: 1.15rem;
+  color: #0f172a;
+  margin-bottom: 0.35rem;
+}
+
+.step-card p {
+  color: #475569;
+  line-height: 1.5;
+  font-size: 0.93rem;
+}
+
 .featured-products {
   padding: 4rem 0;
 }
@@ -267,6 +324,52 @@
   font-size: 0.9rem;
 }
 
+.testimonials {
+  padding: 4rem 0;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+}
+
+.testimonials h2 {
+  text-align: center;
+  font-size: clamp(1.8rem, 4vw, 2.4rem);
+  color: #0f172a;
+  margin-bottom: 2.1rem;
+}
+
+.testimonials-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.15rem;
+}
+
+.testimonial-card {
+  padding: 1.35rem;
+  border-radius: 1rem;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.testimonial-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+}
+
+.testimonial-card p {
+  color: #475569;
+  line-height: 1.5;
+  font-size: 0.93rem;
+  margin-bottom: 0.8rem;
+  font-style: italic;
+}
+
+.testimonial-card cite {
+  color: #0f172a;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
 .footer {
   background: #0f172a;
   color: #e2e8f0;
@@ -317,6 +420,20 @@
   color: #4f46e5;
 }
 
+.help-button {
+  background: none;
+  border: none;
+  color: #cbd5e1;
+  text-decoration: none;
+  cursor: pointer;
+  font-size: inherit;
+  padding: 0;
+}
+
+.help-button:hover {
+  color: #4f46e5;
+}
+
 .footer-bottom {
   border-top: 1px solid #334155;
   padding-top: 1rem;
@@ -355,7 +472,9 @@
 
   .features,
   .featured-products,
-  .categories {
+  .categories,
+  .how-it-works,
+  .testimonials {
     padding: 2.7rem 0;
   }
 
@@ -371,43 +490,5 @@
   .footer-content {
     grid-template-columns: 1fr;
     text-align: center;
-  }
-}
-  .hero {
-    padding-top: 2.7rem;
-  }
-
-  .hero-grid {
-    grid-template-columns: 1fr;
-    text-align: center;
-  }
-
-  .hero-title,
-  .hero-description {
-    margin-left: auto;
-    margin-right: auto;
-  }
-
-  .hero-buttons {
-    justify-content: center;
-  }
-
-  .hero-stats {
-    grid-template-columns: 1fr;
-  }
-
-  .hero-graphic {
-    margin-top: 0.3rem;
-  }
-
-  .features,
-  .featured-products,
-  .categories {
-    padding: 2.7rem 0;
-  }
-
-  .section-header {
-    flex-direction: column;
-    align-items: flex-start;
   }
 }

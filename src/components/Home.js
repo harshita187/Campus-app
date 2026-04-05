@@ -88,6 +88,33 @@ const Home = ({ products }) => {
         </div>
       </section>
 
+      {/* How It Works */}
+      <section className="how-it-works">
+        <div className="container">
+          <h2>How It Works</h2>
+          <div className="steps-grid">
+            <div className="step-card">
+              <div className="step-number">1</div>
+              <FiSearch className="step-icon" />
+              <h3>Browse Products</h3>
+              <p>Explore listings from verified students in your college.</p>
+            </div>
+            <div className="step-card">
+              <div className="step-number">2</div>
+              <FiUsers className="step-icon" />
+              <h3>Chat with Seller</h3>
+              <p>Connect directly via real-time messaging to negotiate.</p>
+            </div>
+            <div className="step-card">
+              <div className="step-number">3</div>
+              <FiShield className="step-icon" />
+              <h3>Meet Safely</h3>
+              <p>Complete transactions on campus with trusted peers.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Featured Products */}
       <section className="featured-products">
         <div className="container">
@@ -150,6 +177,27 @@ const Home = ({ products }) => {
         </div>
       </section>
 
+      {/* Testimonials */}
+      <section className="testimonials">
+        <div className="container">
+          <h2>What Students Say</h2>
+          <div className="testimonials-grid">
+            <div className="testimonial-card">
+              <p>"Campus App made selling my old laptop so easy! Found a buyer in minutes."</p>
+              <cite>- Priya, Engineering Student</cite>
+            </div>
+            <div className="testimonial-card">
+              <p>"Bought study notes at half the price. Super convenient and safe."</p>
+              <cite>- Rohan, Medical Student</cite>
+            </div>
+            <div className="testimonial-card">
+              <p>"Love the campus-only network. No scams, just real deals."</p>
+              <cite>- Anjali, Arts Student</cite>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Footer */}
       <footer className="footer">
         <div className="container">
@@ -170,7 +218,7 @@ const Home = ({ products }) => {
               <h4>Support</h4>
               <ul>
                 <li><a href="mailto:support@campusapp.com">Contact Us</a></li>
-                <li><a href="#">Help Center</a></li>
+                <li><button className="help-button">Help Center</button></li>
               </ul>
             </div>
           </div>
