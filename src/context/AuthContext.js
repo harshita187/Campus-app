@@ -3,6 +3,18 @@ import { authService } from "../services/authService";
 
 const AuthContext = createContext();
 
+const getAuthErrorMessage = (error, fallbackMessage) => {
+  if (error.response?.data?.message) {
+    return error.response.data.message;
+  }
+
+  if (error.code === "ERR_NETWORK") {
+    return "Backend se connection nahi ho pa raha. Check karo ki API/server run ho raha hai.";
+  }
+
+  return fallbackMessage;
+};
+
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -47,7 +59,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       return {
         success: false,
-        message: error.response?.data?.message || "Login failed",
+        message: getAuthErrorMessage(error, "Login failed"),
       };
     }
   };
@@ -59,7 +71,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       return {
         success: false,
-        message: error.response?.data?.message || "Signup failed",
+        message: getAuthErrorMessage(error, "Signup failed"),
       };
     }
   };

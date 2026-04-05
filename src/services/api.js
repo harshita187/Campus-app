@@ -1,15 +1,20 @@
 import axios from "axios";
 
 const getApiUrl = () => {
-  if (process.env.REACT_APP_API_URL) {
-    return process.env.REACT_APP_API_URL;
-  }
+  const explicitApiUrl = process.env.REACT_APP_API_URL?.trim();
+  const forceLocalApi = process.env.REACT_APP_FORCE_LOCAL_API !== "false";
 
   const hostname = window.location.hostname;
   const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1";
 
-  if (isLocalhost) {
+  // During local development, prefer the local backend by default even if a
+  // deployed API URL is present in .env. This keeps login/signup predictable.
+  if (isLocalhost && forceLocalApi) {
     return "http://localhost:5001/api";
+  }
+
+  if (explicitApiUrl) {
+    return explicitApiUrl;
   }
 
   return `http://${hostname}:5001/api`;

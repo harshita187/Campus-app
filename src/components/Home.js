@@ -1,232 +1,334 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React from "react";
+import { Link } from "react-router-dom";
 import {
-  FiSearch,
-  FiShoppingBag,
-  FiUsers,
-  FiTrendingUp,
-  FiShield,
   FiArrowRight,
-} from 'react-icons/fi';
-import ProductCard from './ProductCard';
-import './Home.css';
+  FiCheckCircle,
+  FiClock,
+  FiMessageCircle,
+  FiSearch,
+  FiShield,
+  FiShoppingBag,
+  FiTrendingUp,
+  FiUsers,
+} from "react-icons/fi";
+import ProductCard from "./ProductCard";
+import "./Home.css";
 
-const Home = ({ products }) => {
+const categories = [
+  {
+    name: "Notes",
+    icon: "📚",
+    description: "Class notes, solved papers, and study bundles.",
+  },
+  {
+    name: "Electronics",
+    icon: "💻",
+    description: "Laptops, calculators, headphones, and gadgets.",
+  },
+  {
+    name: "Furniture",
+    icon: "🪑",
+    description: "Desks, chairs, lamps, and room setup essentials.",
+  },
+  {
+    name: "Cycle",
+    icon: "🚲",
+    description: "Cycles and commuter gear for campus travel.",
+  },
+  {
+    name: "Dress",
+    icon: "👕",
+    description: "College wear, formals, and occasion outfits.",
+  },
+  {
+    name: "Cooler",
+    icon: "❄️",
+    description: "Room appliances and practical hostel upgrades.",
+  },
+];
+
+const trustHighlights = [
+  {
+    icon: FiUsers,
+    title: "Campus-only network",
+    description: "Every listing is shared inside a familiar student community.",
+  },
+  {
+    icon: FiMessageCircle,
+    title: "Direct student chat",
+    description: "Ask questions, negotiate quickly, and finalise plans faster.",
+  },
+  {
+    icon: FiShield,
+    title: "Safer meetups",
+    description: "Coordinate exchanges in known campus spaces with confidence.",
+  },
+];
+
+const steps = [
+  {
+    number: "01",
+    title: "Discover what you need",
+    description: "Use categories and featured picks to jump straight into relevant listings.",
+    icon: FiSearch,
+  },
+  {
+    number: "02",
+    title: "Talk before you travel",
+    description: "Message sellers, confirm condition, and align on timing before meeting.",
+    icon: FiMessageCircle,
+  },
+  {
+    number: "03",
+    title: "Close the deal on campus",
+    description: "Meet nearby, inspect the item, and finish the exchange smoothly.",
+    icon: FiCheckCircle,
+  },
+];
+
+const testimonials = [
+  {
+    quote: "Sold my old monitor in one evening and didn’t have to deal with random strangers.",
+    author: "Priya",
+    detail: "Engineering student",
+  },
+  {
+    quote: "The category shortcuts made it much easier to find notes without scrolling forever.",
+    author: "Rohan",
+    detail: "Medical student",
+  },
+  {
+    quote: "It feels more trustworthy when the buyer is also from campus and chat happens in-app.",
+    author: "Anjali",
+    detail: "Arts student",
+  },
+];
+
+const Home = ({ products = [] }) => {
   const featuredProducts = products.slice(0, 3);
 
   return (
     <div className="home">
-      {/* Hero Section */}
       <section className="hero">
-        <div className="container hero-grid">
-          <div className="hero-content">
-            <span className="eyebrow">Built for serious campus commerce</span>
-            <h1 className="hero-title">
-              The Marketplace Students Actually Trust
-            </h1>
+        <div className="container hero-shell">
+          <div className="hero-copy">
+            <span className="eyebrow">Campus marketplace, organised better</span>
+            <h1 className="hero-title">Buy and sell with a layout that helps students act fast.</h1>
             <p className="hero-description">
-              Buy and sell books, electronics, furniture, and essentials inside your
-              verified college network. Faster deals, better prices, safer meetups.
+              Browse by category, spot fresh listings quickly, and move from discovery
+              to chat without the homepage getting in your way.
             </p>
-            <div className="hero-buttons">
+
+            <div className="hero-actions">
               <Link to="/products" className="btn btn-primary">
                 <FiSearch />
-                Explore Products
+                Browse Marketplace
               </Link>
               <Link to="/add-product" className="btn btn-secondary">
                 <FiShoppingBag />
-                Sell in 2 Minutes
+                Post an Item
               </Link>
             </div>
-            <div className="hero-stats">
-              <div className="stat-card">
-                <strong>24x7</strong>
-                <span>Live listings</span>
+
+            <div className="hero-insights">
+              <div className="insight-card">
+                <FiClock />
+                <div>
+                  <strong>Fresh listings first</strong>
+                  <span>See recent products and jump in quickly.</span>
+                </div>
               </div>
-              <div className="stat-card">
-                <strong>Campus-only</strong>
-                <span>Verified users</span>
-              </div>
-              <div className="stat-card">
-                <strong>Zero fees</strong>
-                <span>Student friendly</span>
+              <div className="insight-card">
+                <FiTrendingUp />
+                <div>
+                  <strong>Clear category shortcuts</strong>
+                  <span>Reach the right aisle without extra filtering steps.</span>
+                </div>
               </div>
             </div>
           </div>
-          <div className="hero-image">
-            <div className="hero-graphic">
-              <span>📚</span>
-              <span>💻</span>
-              <span>🪑</span>
-              <span>🚲</span>
+
+          <div className="hero-panel">
+            <div className="hero-panel-card spotlight-card">
+              <div className="spotlight-label">Why students keep using it</div>
+              <h2>Designed around the real campus flow</h2>
+              <ul className="spotlight-list">
+                <li>Find useful categories immediately</li>
+                <li>Compare current listings without clutter</li>
+                <li>Move into seller chat with less friction</li>
+              </ul>
+            </div>
+
+            <div className="hero-metrics">
+              <div className="metric-card">
+                <strong>Campus-first</strong>
+                <span>Made for student-to-student exchanges</span>
+              </div>
+              <div className="metric-card">
+                <strong>Zero extra noise</strong>
+                <span>Sections are focused on actions, not filler</span>
+              </div>
+              <div className="metric-card">
+                <strong>Fast scan paths</strong>
+                <span>Better rhythm across mobile and desktop</span>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="features">
+      <section className="trust-section">
         <div className="container">
-          <h2>Why Campus Market Wins</h2>
-          <div className="features-grid">
-            <div className="feature-card">
-              <FiUsers className="feature-icon" />
-              <h3>Student Community</h3>
-              <p>Connect with verified students from your college</p>
-            </div>
-            <div className="feature-card">
-              <FiShield className="feature-icon" />
-              <h3>Safe Trading</h3>
-              <p>Meet on campus for secure transactions</p>
-            </div>
-            <div className="feature-card">
-              <FiTrendingUp className="feature-icon" />
-              <h3>Best Prices</h3>
-              <p>Get the best deals from fellow students</p>
-            </div>
+          <div className="section-heading section-heading-centered">
+            <span className="section-kicker">Trust and clarity</span>
+            <h2>A homepage that explains the value before asking for effort</h2>
+            <p>
+              The first screen should answer three things quickly: who this is for,
+              why it feels safer, and what the next action should be.
+            </p>
+          </div>
+
+          <div className="trust-grid">
+            {trustHighlights.map(({ icon: Icon, title, description }) => (
+              <article className="trust-card" key={title}>
+                <div className="icon-badge">
+                  <Icon />
+                </div>
+                <h3>{title}</h3>
+                <p>{description}</p>
+              </article>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* How It Works */}
-      <section className="how-it-works">
+      <section className="categories-section">
         <div className="container">
-          <h2>How It Works</h2>
-          <div className="steps-grid">
-            <div className="step-card">
-              <div className="step-number">1</div>
-              <FiSearch className="step-icon" />
-              <h3>Browse Products</h3>
-              <p>Explore listings from verified students in your college.</p>
+          <div className="section-heading">
+            <div>
+              <span className="section-kicker">Start with discovery</span>
+              <h2>Popular categories students look for most</h2>
             </div>
-            <div className="step-card">
-              <div className="step-number">2</div>
-              <FiUsers className="step-icon" />
-              <h3>Chat with Seller</h3>
-              <p>Connect directly via real-time messaging to negotiate.</p>
-            </div>
-            <div className="step-card">
-              <div className="step-number">3</div>
-              <FiShield className="step-icon" />
-              <h3>Meet Safely</h3>
-              <p>Complete transactions on campus with trusted peers.</p>
-            </div>
+            <Link to="/products" className="view-all">
+              Open all products <FiArrowRight />
+            </Link>
+          </div>
+
+          <div className="categories-grid">
+            {categories.map((category) => (
+              <Link
+                className="category-card"
+                key={category.name}
+                to={`/products?category=${encodeURIComponent(category.name)}`}
+              >
+                <span className="category-icon">{category.icon}</span>
+                <div className="category-text">
+                  <h3>{category.name}</h3>
+                  <p>{category.description}</p>
+                </div>
+                <span className="category-arrow">
+                  <FiArrowRight />
+                </span>
+              </Link>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Featured Products */}
       <section className="featured-products">
         <div className="container">
-          <div className="section-header">
-            <h2>Featured Products</h2>
+          <div className="section-heading">
+            <div>
+              <span className="section-kicker">Fresh on campus</span>
+              <h2>Featured listings worth checking right now</h2>
+            </div>
             <Link to="/products" className="view-all">
               View marketplace <FiArrowRight />
             </Link>
           </div>
+
           <div className="products-grid">
-            {featuredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-            {featuredProducts.length === 0 && (
+            {featuredProducts.length > 0 ? (
+              featuredProducts.map((product) => (
+                <ProductCard key={product._id || product.id} product={product} />
+              ))
+            ) : (
               <div className="empty-state">
                 <h3>No featured products yet</h3>
-                <p>Fresh listings will appear here as students add products.</p>
+                <p>New student listings will show up here as soon as they’re added.</p>
               </div>
             )}
           </div>
         </div>
       </section>
 
-      {/* Categories */}
-      <section className="categories">
-        <div className="container">
-          <h2>Popular Categories</h2>
-          <div className="categories-grid">
-            <Link className="category-card" to="/products?category=Notes">
-              <span className="category-icon">📚</span>
-              <h3>Notes</h3>
-              <p>Study materials and notes</p>
-            </Link>
-            <Link className="category-card" to="/products?category=Cycle">
-              <span className="category-icon">🚲</span>
-              <h3>Cycle</h3>
-              <p>Bicycles and accessories</p>
-            </Link>
-            <Link className="category-card" to="/products?category=Dress">
-              <span className="category-icon">👕</span>
-              <h3>Dress</h3>
-              <p>Clothing and apparel</p>
-            </Link>
-            <Link className="category-card" to="/products?category=Cooler">
-              <span className="category-icon">❄️</span>
-              <h3>Cooler</h3>
-              <p>Coolers and appliances</p>
-            </Link>
-            <Link className="category-card" to="/products?category=Electronics">
-              <span className="category-icon">💻</span>
-              <h3>Electronics</h3>
-              <p>Gadgets and devices</p>
-            </Link>
-            <Link className="category-card" to="/products?category=Furniture">
-              <span className="category-icon">🪑</span>
-              <h3>Furniture</h3>
-              <p>Chairs, tables, and more</p>
-            </Link>
+      <section className="how-section">
+        <div className="container how-shell">
+          <div className="section-heading">
+            <div>
+              <span className="section-kicker">How it works</span>
+              <h2>A simpler path from interest to exchange</h2>
+            </div>
+          </div>
+
+          <div className="steps-grid">
+            {steps.map(({ number, title, description, icon: Icon }) => (
+              <article className="step-card" key={number}>
+                <div className="step-topline">
+                  <span className="step-number">{number}</span>
+                  <span className="icon-badge subtle">
+                    <Icon />
+                  </span>
+                </div>
+                <h3>{title}</h3>
+                <p>{description}</p>
+              </article>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="testimonials">
+      <section className="testimonials-section">
         <div className="container">
-          <h2>What Students Say</h2>
+          <div className="section-heading section-heading-centered">
+            <span className="section-kicker">Student feedback</span>
+            <h2>What feels better when the layout is easier to use</h2>
+          </div>
+
           <div className="testimonials-grid">
-            <div className="testimonial-card">
-              <p>"Campus App made selling my old laptop so easy! Found a buyer in minutes."</p>
-              <cite>- Priya, Engineering Student</cite>
-            </div>
-            <div className="testimonial-card">
-              <p>"Bought study notes at half the price. Super convenient and safe."</p>
-              <cite>- Rohan, Medical Student</cite>
-            </div>
-            <div className="testimonial-card">
-              <p>"Love the campus-only network. No scams, just real deals."</p>
-              <cite>- Anjali, Arts Student</cite>
-            </div>
+            {testimonials.map((item) => (
+              <article className="testimonial-card" key={item.author}>
+                <p>{item.quote}</p>
+                <div className="testimonial-meta">
+                  <strong>{item.author}</strong>
+                  <span>{item.detail}</span>
+                </div>
+              </article>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="footer">
+      <section className="cta-section">
         <div className="container">
-          <div className="footer-content">
-            <div className="footer-section">
-              <h3>Campus App</h3>
-              <p>Your trusted campus marketplace for buying and selling essentials.</p>
+          <div className="cta-card">
+            <div>
+              <span className="section-kicker">Ready to use it</span>
+              <h2>Browse what’s available or post something in minutes.</h2>
             </div>
-            <div className="footer-section">
-              <h4>Quick Links</h4>
-              <ul>
-                <li><Link to="/products">Browse Products</Link></li>
-                <li><Link to="/add-product">Sell Product</Link></li>
-                <li><Link to="/chat">Messages</Link></li>
-              </ul>
+            <div className="cta-actions">
+              <Link to="/products" className="btn btn-primary">
+                <FiSearch />
+                Browse products
+              </Link>
+              <Link to="/add-product" className="btn btn-secondary">
+                <FiShoppingBag />
+                Sell an item
+              </Link>
             </div>
-            <div className="footer-section">
-              <h4>Support</h4>
-              <ul>
-                <li><a href="mailto:support@campusapp.com">Contact Us</a></li>
-                <li><button className="help-button">Help Center</button></li>
-              </ul>
-            </div>
-          </div>
-          <div className="footer-bottom">
-            <p>&copy; 2024 Campus App. All rights reserved.</p>
           </div>
         </div>
-      </footer>
+      </section>
     </div>
   );
 };

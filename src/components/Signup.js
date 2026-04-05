@@ -45,8 +45,12 @@ const Signup = () => {
       setError('Password is required');
       return false;
     }
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters');
+    if (formData.password.length < 8) {
+      setError('Password must be at least 8 characters');
+      return false;
+    }
+    if (!/[A-Z]/.test(formData.password) || !/[a-z]/.test(formData.password) || !/[0-9]/.test(formData.password)) {
+      setError('Password must include uppercase, lowercase, and a number');
       return false;
     }
     if (formData.password !== formData.confirmPassword) {
@@ -158,7 +162,7 @@ const Signup = () => {
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
-                placeholder="At least 6 characters"
+                placeholder="Minimum 8 chars, 1 uppercase, 1 number"
                 required
               />
             </div>
@@ -199,4 +203,3 @@ const Signup = () => {
 };
 
 export default Signup;
-

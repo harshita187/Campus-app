@@ -1,34 +1,65 @@
 import React, { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import ProductCard from "./ProductCard";
 import { productService } from "../services/productService";
 import { FiFilter, FiSearch, FiSliders, FiPackage } from "react-icons/fi";
 import "./ProductList.css";
 
+const CATEGORY_OPTIONS = [
+  "All",
+  "Notes",
+  "Cycle",
+  "Dress",
+  "Cooler",
+  "Electronics",
+  "Furniture",
+];
+
 const ProductList = () => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("All");
-  const [sortBy, setSortBy] = useState("newest");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialCategory = searchParams.get("category");
+  const initialSearch = searchParams.get("q") || "";
+  const initialSort = searchParams.get("sort") || "newest";
+
+  const [searchTerm, setSearchTerm] = useState(initialSearch);
+  const [selectedCategory, setSelectedCategory] = useState(
+    CATEGORY_OPTIONS.includes(initialCategory) ? initialCategory : "All"
+  );
+  const [sortBy, setSortBy] = useState(initialSort);
 
   const [products, setProducts] = useState([]);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(Number(searchParams.get("page")) || 1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalProducts, setTotalProducts] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const categories = [
-    "All",
-    "Notes",
-    "Cycle",
-    "Dress",
-    "Cooler",
-    "Electronics",
-    "Furniture",
-  ];
-
   useEffect(() => {
     setPage(1);
   }, [searchTerm, selectedCategory, sortBy]);
+
+  useEffect(() => {
+    const nextCategory = searchParams.get("category");
+    const nextSearch = searchParams.get("q") || "";
+    const nextSort = searchParams.get("sort") || "newest";
+    const nextPage = Number(searchParams.get("page")) || 1;
+
+    setSearchTerm(nextSearch);
+    setSelectedCategory(
+      CATEGORY_OPTIONS.includes(nextCategory) ? nextCategory : "All"
+    );
+    setSortBy(nextSort);
+    setPage(nextPage);
+  }, [searchParams]);
+
+  useEffect(() => {
+    const params = {};
+    if (searchTerm.trim()) params.q = searchTerm.trim();
+    if (selectedCategory !== "All") params.category = selectedCategory;
+    if (sortBy !== "newest") params.sort = sortBy;
+    if (page > 1) params.page = String(page);
+    setSearchParams(params, { replace: true });
+  }, [page, searchTerm, selectedCategory, setSearchParams, sortBy]);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -89,7 +120,7 @@ const ProductList = () => {
                 onChange={(e) => setSelectedCategory(e.target.value)}
                 className="filter-select"
               >
-                {categories.map((category) => (
+                {CATEGORY_OPTIONS.map((category) => (
                   <option key={category} value={category}>
                     {category}
                   </option>
