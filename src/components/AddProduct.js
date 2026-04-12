@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { productService } from '../services/productService';
 import { uploadService } from '../services/uploadService';
@@ -9,18 +9,27 @@ import './AddProduct.css';
 const FALLBACK_IMAGE =
   "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='640' height='420' viewBox='0 0 640 420'><rect width='640' height='420' fill='%23eef2ff'/><rect x='210' y='130' width='220' height='140' rx='16' fill='%23c7d2fe'/><text x='320' y='305' text-anchor='middle' fill='%23475569' font-family='Arial' font-size='24'>No Image</text></svg>";
 
+const CATEGORIES = ['Notes', 'Cycle', 'Dress', 'Cooler', 'Electronics', 'Furniture', 'Others'];
+
 const AddProduct = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const categoryFromUrl = searchParams.get('category');
+  const initialCategory = CATEGORIES.includes(categoryFromUrl) ? categoryFromUrl : 'Notes';
+
   const [formData, setFormData] = useState({
     title: '',
     price: '',
-    category: 'Notes',
+    category: initialCategory,
     condition: 'Good',
     description: '',
     seller: '',
     contact: '',
-    images: ['https://via.placeholder.com/400x300?text=Product+Image']
+    pickupLocation: '',
+    negotiable: true,
+    urgency: 'none',
+    images: [],
   });
 
   useEffect(() => {
@@ -33,8 +42,31 @@ const AddProduct = () => {
     }
   }, [user]);
 
+  useEffect(() => {
+    if (CATEGORIES.includes(categoryFromUrl)) {
+      setFormData((prev) => ({ ...prev, category: categoryFromUrl }));
+    }
+  }, [categoryFromUrl]);
+
   const [errors, setErrors] = useState({});
   const [uploading, setUploading] = useState(false);
+  /** Local blob URLs so preview updates immediately while upload runs */
+  const [localPreviewUrls, setLocalPreviewUrls] = useState([]);
+  const localPreviewUrlsRef = useRef([]);
+
+  const revokePreviewUrls = useCallback((urls) => {
+    urls.forEach((u) => {
+      if (u && u.startsWith('blob:')) URL.revokeObjectURL(u);
+    });
+  }, []);
+
+  useEffect(() => {
+    localPreviewUrlsRef.current = localPreviewUrls;
+  }, [localPreviewUrls]);
+
+  useEffect(() => {
+    return () => revokePreviewUrls(localPreviewUrlsRef.current);
+  }, [revokePreviewUrls]);
 
   const getResolvedImage = (src) => {
     if (!src || typeof src !== "string") return FALLBACK_IMAGE;
@@ -43,8 +75,29 @@ const AddProduct = () => {
     return `${SOCKET_URL}/uploads/${src}`;
   };
 
-  const categories = ['Notes', 'Cycle', 'Dress', 'Cooler', 'Electronics', 'Others'];
-  const conditions = ['Like New', 'Excellent', 'Good', 'Fair'];
+  const pickupOptions = [
+    { value: '', label: 'Not specified' },
+    { value: 'Hostel 4', label: 'Hostel 4' },
+    { value: 'Hostel 7', label: 'Hostel 7' },
+    { value: 'Library pickup', label: 'Library pickup' },
+    { value: 'Main gate', label: 'Main gate' },
+    { value: 'Food court', label: 'Food court' },
+    { value: 'Academic block', label: 'Academic block' },
+  ];
+  const conditions = [
+    'Brand New',
+    'Open Box',
+    'Like New',
+    'Excellent',
+    'Good',
+    'Fair',
+    'Heavily Used',
+  ];
+  const urgencyOptions = [
+    { value: 'none', label: 'No urgency tag' },
+    { value: 'moving_out', label: 'Moving out soon' },
+    { value: 'flash_sale', label: 'Flash sale' },
+  ];
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -78,23 +131,37 @@ const AddProduct = () => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
 
+    const picked = files.slice(0, 5);
+    const nextBlobs = picked.map((file) => URL.createObjectURL(file));
+    setLocalPreviewUrls((prev) => {
+      revokePreviewUrls(prev);
+      return nextBlobs;
+    });
+
     setUploading(true);
+    setErrors((prev) => ({ ...prev, images: '' }));
     try {
       const uploaded = [];
-      for (const file of files.slice(0, 5)) {
+      for (const file of picked) {
         const result = await uploadService.uploadImage(file);
         uploaded.push(result.url);
       }
 
+      setLocalPreviewUrls((prev) => {
+        revokePreviewUrls(prev);
+        return [];
+      });
       setFormData((prev) => ({
         ...prev,
         images: uploaded,
       }));
-      setErrors((prev) => ({ ...prev, images: '' }));
     } catch (error) {
       setErrors((prev) => ({
         ...prev,
-        images: error.response?.data?.message || 'Image upload failed',
+        images:
+          error.response?.data?.message ||
+          error.message ||
+          'Image upload failed — check that the API is running (e.g. port 5001).',
       }));
     } finally {
       setUploading(false);
@@ -106,9 +173,12 @@ const AddProduct = () => {
     
     if (validateForm()) {
       try {
+        const { seller, contact, urgency, ...rest } = formData;
         await productService.create({
-          ...formData,
+          ...rest,
           price: parseFloat(formData.price),
+          pickupLocation: formData.pickupLocation?.trim() || undefined,
+          urgency: urgency === 'none' ? undefined : urgency,
         });
         alert('Product listed successfully!');
         navigate('/products');
@@ -168,7 +238,7 @@ const AddProduct = () => {
                   value={formData.category}
                   onChange={handleChange}
                 >
-                  {categories.map(category => (
+                  {CATEGORIES.map(category => (
                     <option key={category} value={category}>{category}</option>
                   ))}
                 </select>
@@ -186,6 +256,52 @@ const AddProduct = () => {
                     <option key={condition} value={condition}>{condition}</option>
                   ))}
                 </select>
+              </div>
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="urgency">Listing urgency (optional)</label>
+                <select
+                  id="urgency"
+                  name="urgency"
+                  value={formData.urgency}
+                  onChange={handleChange}
+                >
+                  {urgencyOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label htmlFor="pickupLocation">Pickup / meet point</label>
+                <select
+                  id="pickupLocation"
+                  name="pickupLocation"
+                  value={formData.pickupLocation}
+                  onChange={handleChange}
+                >
+                  {pickupOptions.map((opt) => (
+                    <option key={opt.value || "none"} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group form-group-checkbox">
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    name="negotiable"
+                    checked={formData.negotiable}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, negotiable: e.target.checked }))
+                    }
+                  />
+                  Price is negotiable
+                </label>
               </div>
             </div>
 
@@ -249,19 +365,45 @@ const AddProduct = () => {
                 multiple
                 onChange={handleImageUpload}
               />
-              <span className="upload-hint">Upload up to 5 images, max 15MB each.</span>
-              {uploading && <span className="error-message">Uploading images...</span>}
+              <span className="upload-hint">
+                Upload up to 5 images, max 15MB each. Preview appears as soon as you pick
+                files; we then upload them to the server.
+              </span>
+              {uploading && <span className="upload-status">Uploading to server…</span>}
               {errors.images && <span className="error-message">{errors.images}</span>}
             </div>
             <div className="product-preview">
               <div className="preview-image">
-                <img
-                  src={getResolvedImage(formData.images[0])}
-                  alt="Product preview"
-                  onError={(e) => {
-                    e.currentTarget.src = FALLBACK_IMAGE;
-                  }}
-                />
+                {localPreviewUrls[0] || formData.images[0] ? (
+                  <img
+                    src={localPreviewUrls[0] || getResolvedImage(formData.images[0])}
+                    alt="Product preview"
+                    onError={(ev) => {
+                      ev.currentTarget.src = FALLBACK_IMAGE;
+                    }}
+                  />
+                ) : (
+                  <div className="preview-image-empty">
+                    <span>Choose photos above to see preview</span>
+                  </div>
+                )}
+                {localPreviewUrls.length > 1 ? (
+                  <div className="preview-thumb-strip" aria-hidden>
+                    {localPreviewUrls.slice(1, 5).map((url) => (
+                      <span key={url} className="preview-thumb-mini">
+                        <img src={url} alt="" />
+                      </span>
+                    ))}
+                  </div>
+                ) : formData.images.length > 1 && !localPreviewUrls.length ? (
+                  <div className="preview-thumb-strip" aria-hidden>
+                    {formData.images.slice(1, 5).map((src) => (
+                      <span key={src} className="preview-thumb-mini">
+                        <img src={getResolvedImage(src)} alt="" />
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
               </div>
               <div className="preview-info">
                 <h3>{formData.title || 'Product Title'}</h3>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   FiArrowLeft,
@@ -7,14 +7,32 @@ import {
   FiClock,
   FiTag,
   FiMapPin,
+  FiDollarSign,
+  FiChevronLeft,
+  FiChevronRight,
+  FiCheck,
+  FiZap,
 } from "react-icons/fi";
 import "./ProductDetail.css";
 import { productService } from "../services/productService";
 import { useAuth } from "../context/AuthContext";
+import { recordProductView } from "../utils/recentViewed";
 import { SOCKET_URL } from "../services/api";
+import { CategoryFlatIcon } from "./CategoryFlatIcon";
+import { isCampusEmail } from "../utils/campusEmail";
 
-const FALLBACK_IMAGE =
-  "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='900' height='600' viewBox='0 0 900 600'><rect width='900' height='600' fill='%23eef2ff'/><rect x='300' y='180' width='300' height='190' rx='20' fill='%23c7d2fe'/><text x='450' y='420' text-anchor='middle' fill='%23475569' font-family='Arial' font-size='32'>No Image</text></svg>";
+function buildImageUrl(src) {
+  if (!src || typeof src !== "string" || !src.trim()) return null;
+  const t = src.trim();
+  if (t.startsWith("http://") || t.startsWith("https://")) return t;
+  if (t.startsWith("/")) return `${SOCKET_URL}${t}`;
+  return `${SOCKET_URL}/uploads/${t}`;
+}
+
+const URGENCY_LABEL = {
+  moving_out: "Moving out soon",
+  flash_sale: "Flash sale",
+};
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -22,6 +40,8 @@ const ProductDetail = () => {
   const { user, isAuthenticated } = useAuth();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [activeIdx, setActiveIdx] = useState(0);
+  const [imgBroken, setImgBroken] = useState(false);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -36,6 +56,25 @@ const ProductDetail = () => {
     };
     fetchProduct();
   }, [id]);
+
+  useEffect(() => {
+    if (product?._id) recordProductView(product._id);
+  }, [product?._id]);
+
+  useEffect(() => {
+    setActiveIdx(0);
+    setImgBroken(false);
+  }, [id, product?._id]);
+
+  const galleryUrls = useMemo(() => {
+    if (!product?.images?.length) return [];
+    const out = [];
+    for (const s of product.images) {
+      const u = buildImageUrl(s);
+      if (u) out.push(u);
+    }
+    return out;
+  }, [product]);
 
   if (loading) {
     return (
@@ -73,16 +112,25 @@ const ProductDetail = () => {
     });
   };
 
-  const isOwnProduct = product && (product.sellerId?._id === user?.id || product.sellerId?._id === user?._id);
-  const firstImage = product?.images?.[0];
-  const resolvedImage =
-    !firstImage
-      ? FALLBACK_IMAGE
-      : firstImage.startsWith("http://") || firstImage.startsWith("https://")
-        ? firstImage
-        : firstImage.startsWith("/")
-          ? `${SOCKET_URL}${firstImage}`
-          : `${SOCKET_URL}/uploads/${firstImage}`;
+  const isOwnProduct =
+    product &&
+    (product.sellerId?._id === user?.id || product.sellerId?._id === user?._id);
+
+  const hasGallery = galleryUrls.length > 0 && !imgBroken;
+  const mainSrc = hasGallery ? galleryUrls[Math.min(activeIdx, galleryUrls.length - 1)] : null;
+
+  const sellerVerified = isCampusEmail(product.sellerId?.email);
+  const urgencyLabel = product.urgency ? URGENCY_LABEL[product.urgency] : null;
+
+  const goPrev = () => {
+    if (galleryUrls.length < 2) return;
+    setActiveIdx((i) => (i <= 0 ? galleryUrls.length - 1 : i - 1));
+  };
+
+  const goNext = () => {
+    if (galleryUrls.length < 2) return;
+    setActiveIdx((i) => (i >= galleryUrls.length - 1 ? 0 : i + 1));
+  };
 
   return (
     <div className="product-detail">
@@ -97,26 +145,74 @@ const ProductDetail = () => {
         <div className="product-content">
           <div className="product-images">
             <div className="main-image">
-              <img
-                src={resolvedImage}
-                alt={product.title}
-                onError={(e) => {
-                  e.currentTarget.src = FALLBACK_IMAGE;
-                }}
-              />
+              {mainSrc ? (
+                <img
+                  src={mainSrc}
+                  alt={product.title}
+                  onError={() => setImgBroken(true)}
+                />
+              ) : (
+                <div className="main-image-placeholder">
+                  <CategoryFlatIcon name={product.category || "Others"} size={96} />
+                  <span>No photos yet</span>
+                </div>
+              )}
+              {galleryUrls.length > 1 && mainSrc ? (
+                <>
+                  <button
+                    type="button"
+                    className="gallery-nav gallery-nav--prev"
+                    onClick={goPrev}
+                    aria-label="Previous photo"
+                  >
+                    <FiChevronLeft />
+                  </button>
+                  <button
+                    type="button"
+                    className="gallery-nav gallery-nav--next"
+                    onClick={goNext}
+                    aria-label="Next photo"
+                  >
+                    <FiChevronRight />
+                  </button>
+                  <span className="gallery-counter" aria-live="polite">
+                    {activeIdx + 1} / {galleryUrls.length}
+                  </span>
+                </>
+              ) : null}
               <div className="condition-badge">
                 <FiTag />
                 {product.condition}
               </div>
             </div>
+            {galleryUrls.length > 1 ? (
+              <div className="gallery-thumbs" role="tablist" aria-label="Product photos">
+                {galleryUrls.map((url, i) => (
+                  <button
+                    key={url}
+                    type="button"
+                    role="tab"
+                    aria-selected={i === activeIdx}
+                    className={`gallery-thumb ${i === activeIdx ? "gallery-thumb--active" : ""}`}
+                    onClick={() => setActiveIdx(i)}
+                  >
+                    <img src={url} alt="" />
+                  </button>
+                ))}
+              </div>
+            ) : null}
           </div>
 
           <div className="product-info">
             <div className="product-header">
               <h1>{product.title}</h1>
-              <div className="product-price">
-                ₹{product.price.toLocaleString()}
-              </div>
+              {urgencyLabel ? (
+                <p className="product-urgency-banner">
+                  <FiZap aria-hidden />
+                  {urgencyLabel}
+                </p>
+              ) : null}
+              <div className="product-price">₹{product.price.toLocaleString()}</div>
               <div className="product-category">{product.category}</div>
             </div>
 
@@ -142,8 +238,17 @@ const ProductDetail = () => {
                 </div>
                 <div className="detail-item">
                   <FiMapPin className="detail-icon" />
-                  <span className="detail-label">Location:</span>
-                  <span className="detail-value">On Campus</span>
+                  <span className="detail-label">Meet / pickup:</span>
+                  <span className="detail-value">
+                    {product.pickupLocation?.trim() || "On campus (confirm with seller)"}
+                  </span>
+                </div>
+                <div className="detail-item">
+                  <FiDollarSign className="detail-icon" />
+                  <span className="detail-label">Negotiation:</span>
+                  <span className="detail-value">
+                    {product.negotiable === false ? "Firm price" : "Open to offers"}
+                  </span>
                 </div>
               </div>
             </div>
@@ -155,7 +260,14 @@ const ProductDetail = () => {
                   <FiUser />
                 </div>
                 <div className="seller-details">
-                  <h4>{product.sellerId?.name || "Seller"}</h4>
+                  <h4 className="seller-name-row">
+                    {product.sellerId?.name || "Seller"}
+                    {sellerVerified ? (
+                      <span className="seller-verified" title="Campus email on file">
+                        <FiCheck aria-hidden />
+                      </span>
+                    ) : null}
+                  </h4>
                   <p>Fellow Student</p>
                   <div className="contact-info">
                     <FiMail />
@@ -175,6 +287,7 @@ const ProductDetail = () => {
               </a>
               {isAuthenticated && !isOwnProduct && (
                 <button
+                  type="button"
                   className="btn btn-secondary"
                   onClick={() => navigate(`/chat/product/${product._id || id}`)}
                 >

@@ -1,0 +1,36 @@
+.chat-fab {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  z-index: 1000;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  color: #fff;
+  box-shadow: 0 12px 32px rgba(79, 70, 229, 0.45);
+  text-decoration: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.chat-fab:hover {
+  transform: scale(1.06);
+  box-shadow: 0 16px 40px rgba(79, 70, 229, 0.5);
+  color: #fff;
+}
+
+.chat-fab-icon {
+  font-size: 1.5rem;
+}
+
+@media (min-width: 900px) {
+  .chat-fab {
+    right: 1.75rem;
+    bottom: 1.75rem;
+    width: 3.65rem;
+    height: 3.65rem;
+  }
+}
