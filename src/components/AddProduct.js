@@ -256,12 +256,18 @@ const AddProduct = () => {
           : uploaded,
       }));
     } catch (error) {
+      const status = error.response?.status;
+      let msg =
+        error.response?.data?.message ||
+        error.message ||
+        "Image upload failed — check that the API is running (e.g. port 5001).";
+      if (status === 404) {
+        msg =
+          "Upload URL returned 404 — redeploy the latest backend (upload routes) or ask your host if /api is stripped from paths.";
+      }
       setErrors((prev) => ({
         ...prev,
-        images:
-          error.response?.data?.message ||
-          error.message ||
-          'Image upload failed — check that the API is running (e.g. port 5001).',
+        images: msg,
       }));
     } finally {
       setUploading(false);

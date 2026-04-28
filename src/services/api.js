@@ -14,7 +14,11 @@ const getApiUrl = () => {
   }
 
   if (explicitApiUrl) {
-    return explicitApiUrl;
+    let u = explicitApiUrl.replace(/\/+$/, "");
+    if (!u.endsWith("/api")) {
+      u = `${u}/api`;
+    }
+    return u;
   }
 
   return `http://${hostname}:5001/api`;
