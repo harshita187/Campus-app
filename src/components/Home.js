@@ -25,7 +25,6 @@ import { getRecentProductIds } from "../utils/recentViewed";
 import { resolveListingImageUrl } from "../utils/listingImageUrl";
 import { useAuth } from "../context/AuthContext";
 import { canSell } from "../utils/roleHelpers";
-import { API_URL } from "../services/api";
 import "./Home.css";
 
 const TRENDING_SEARCHES = [
@@ -446,7 +445,6 @@ const Home = ({ products = [] }) => {
   const [heroCategory, setHeroCategory] = useState("");
   const [stats, setStats] = useState(null);
   const [statsLoading, setStatsLoading] = useState(true);
-  const [statsLoadFailed, setStatsLoadFailed] = useState(false);
   const [recentProducts, setRecentProducts] = useState([]);
   const [trendingProducts, setTrendingProducts] = useState([]);
   const [trendingLoading, setTrendingLoading] = useState(true);
@@ -472,11 +470,9 @@ const Home = ({ products = [] }) => {
         const data = await productService.getStats();
         if (!cancelled) {
           setStats(data);
-          setStatsLoadFailed(false);
         }
       } catch {
         if (!cancelled) {
-          setStatsLoadFailed(true);
           setStats({
             users: 0,
             activeListings: 0,
@@ -704,25 +700,6 @@ const Home = ({ products = [] }) => {
               Real counts from this marketplace—numbers update as more peers join and list
               items.
             </p>
-            {statsLoadFailed ? (
-              <p className="stats-api-warning" role="status">
-                Couldn&apos;t load live stats. The app is calling{" "}
-                <code className="stats-api-code">{API_URL}</code>
-                {typeof window !== "undefined" &&
-                (window.location.hostname === "localhost" ||
-                  window.location.hostname === "127.0.0.1") ? (
-                  <> (start the backend locally, e.g. port 5001).</>
-                ) : (
-                  <>
-                    . In Vercel → Project → Settings → Environment Variables, set{" "}
-                    <code className="stats-api-code">REACT_APP_API_URL</code> to your live API
-                    base (must end with <code className="stats-api-code">/api</code>, e.g.{" "}
-                    <code className="stats-api-code">https://your-service.run.app/api</code>),
-                    then redeploy. Until then, zeros are placeholders—not your real database.
-                  </>
-                )}
-              </p>
-            ) : null}
             {!statsLoading ? <ActivityTicker /> : null}
           </div>
 
