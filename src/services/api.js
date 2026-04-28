@@ -21,7 +21,15 @@ const getApiUrl = () => {
     return u;
   }
 
-  return `http://${hostname}:5001/api`;
+  const fallback = `http://${hostname}:5001/api`;
+  if (!isLocalhost) {
+    console.warn(
+      "[Campus Market] REACT_APP_API_URL is missing at build time. API calls use",
+      fallback,
+      "— set REACT_APP_API_URL in Vercel (e.g. https://your-backend.run.app) and redeploy."
+    );
+  }
+  return fallback;
 };
 
 const API_URL = getApiUrl();
