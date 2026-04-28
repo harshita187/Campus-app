@@ -230,7 +230,6 @@ const Signup = () => {
                 autoComplete="organization"
                 maxLength={120}
                 required
-                aria-describedby="campusName-hint"
               />
             </div>
             {collegesMeta?.colleges?.length ? (
@@ -240,10 +239,6 @@ const Signup = () => {
                 ))}
               </datalist>
             ) : null}
-            <p id="campusName-hint" className="signup-field-hint">
-              Type your real campus name—any school works. Optional suggestions appear while you
-              type. This tags your listings so others can search by campus.
-            </p>
           </div>
 
           <fieldset className="signup-fieldset">
