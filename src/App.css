@@ -4,6 +4,18 @@
   box-sizing: border-box;
 }
 
+html {
+  overflow-x: hidden;
+  overflow-x: clip;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+#root {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
 :root {
   --bg-base: #f3f6fb;
   --bg-soft: #eef2ff;
@@ -15,6 +27,34 @@
   --brand-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
   --surface: #ffffff;
   --shadow-soft: 0 12px 32px rgba(15, 23, 42, 0.08);
+  /* ≈ Tailwind max-w-7xl + px-4 sm:px-6 md:px-10 lg:px-16 */
+  --container-max: 1280px;
+  --container-pad-x: 1rem;
+  /* Vertical rhythm between major sections (py-16 → py-20) */
+  --section-padding-y: clamp(3.5rem, 5vw + 1rem, 5rem);
+  --layout-gap: clamp(1.25rem, 2.2vw, 2rem);
+  --card-padding: clamp(1.15rem, 2vw, 1.5rem);
+  --radius-card: 1rem;
+  --shadow-card-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow-card-md: 0 4px 14px rgba(15, 23, 42, 0.08);
+}
+
+@media (min-width: 640px) {
+  :root {
+    --container-pad-x: 1.5rem;
+  }
+}
+
+@media (min-width: 768px) {
+  :root {
+    --container-pad-x: 2.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --container-pad-x: 4rem;
+  }
 }
 
 body {
@@ -27,6 +67,14 @@ body {
   color: var(--text-primary);
   background: radial-gradient(circle at 10% 10%, #e0e7ff, transparent 40%),
     radial-gradient(circle at 90% 20%, #ede9fe, transparent 35%), var(--bg-base);
+  overflow-x: hidden;
+  overflow-x: clip;
+}
+
+img,
+video {
+  max-width: 100%;
+  height: auto;
 }
 
 .App {
@@ -34,8 +82,13 @@ body {
 }
 
 .container {
-  width: min(1200px, 100% - 3rem);
-  margin: 0 auto;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: var(--container-max);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: max(env(safe-area-inset-left, 0px), var(--container-pad-x));
+  padding-right: max(env(safe-area-inset-right, 0px), var(--container-pad-x));
 }
 
 .btn {
@@ -105,8 +158,16 @@ body {
   margin-bottom: 2rem;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 639px) {
+  :root {
+    --container-max: 100%;
+    --container-pad-x: 1rem;
+  }
+}
+
+@media (max-width: 380px) {
   .container {
-    width: min(1200px, 100% - 1.5rem);
+    padding-left: max(1rem, env(safe-area-inset-left, 0));
+    padding-right: max(1rem, env(safe-area-inset-right, 0));
   }
 }

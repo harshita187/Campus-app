@@ -2,16 +2,9 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { FiMessageCircle, FiX, FiExternalLink } from "react-icons/fi";
 import { productService } from "../services/productService";
-import { SOCKET_URL } from "../services/api";
 import { CategoryFlatIcon } from "./CategoryFlatIcon";
+import { resolveListingImageUrl } from "../utils/listingImageUrl";
 import "./ProductQuickViewModal.css";
-
-function resolveImageSrc(first) {
-  if (!first || typeof first !== "string") return null;
-  if (first.startsWith("http://") || first.startsWith("https://")) return first;
-  if (first.startsWith("/")) return `${SOCKET_URL}${first}`;
-  return `${SOCKET_URL}/uploads/${first}`;
-}
 
 const ProductQuickViewModal = ({ productId, onClose }) => {
   const [product, setProduct] = useState(null);
@@ -57,7 +50,7 @@ const ProductQuickViewModal = ({ productId, onClose }) => {
 
   const imgSrc = useMemo(() => {
     if (!product?.images?.[0]) return null;
-    return resolveImageSrc(product.images[0]);
+    return resolveListingImageUrl(product.images[0]);
   }, [product]);
 
   if (!productId) return null;

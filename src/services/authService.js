@@ -9,12 +9,14 @@ export const authService = {
     return response.data;
   },
 
-  signup: async (name, email, password, phone) => {
+  signup: async (name, email, password, phone, campusName, role) => {
     const response = await apiClient.post('/auth/signup', {
       name,
       email,
       password,
       phone,
+      campusName,
+      role,
     });
     return response.data;
   },

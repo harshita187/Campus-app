@@ -6,7 +6,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
+  padding: max(0.75rem, env(safe-area-inset-top, 0px))
+    max(0.75rem, env(safe-area-inset-right, 0px))
+    max(0.75rem, env(safe-area-inset-bottom, 0px))
+    max(0.75rem, env(safe-area-inset-left, 0px));
   animation: qv-fade 0.2s ease;
 }
 
@@ -73,6 +76,20 @@
   }
 }
 
+@media (max-width: 480px) {
+  .qv-overlay {
+    align-items: flex-end;
+    padding: 0 0 max(0.5rem, env(safe-area-inset-bottom, 0px));
+  }
+
+  .qv-panel {
+    width: 100%;
+    max-width: none;
+    max-height: min(92dvh, 100dvh - env(safe-area-inset-top, 0px));
+    border-radius: 1rem 1rem 0 0;
+  }
+}
+
 .qv-media {
   background: linear-gradient(160deg, #f1f5f9, #e0e7ff);
   min-height: 200px;
@@ -81,6 +98,7 @@
 .qv-img {
   width: 100%;
   height: 100%;
+  max-width: none;
   min-height: 220px;
   object-fit: cover;
   aspect-ratio: 4 / 3;

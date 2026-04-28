@@ -1,0 +1,116 @@
+.wishlist-page {
+  min-height: 100vh;
+  padding: clamp(2rem, 4vw, 3rem) 0 clamp(2.5rem, 5vw, 4rem);
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+.wishlist-page-inner {
+  max-width: min(80rem, 100%);
+}
+
+.wishlist-nav {
+  margin-bottom: 1.25rem;
+}
+
+.wishlist-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #4f46e5;
+  text-decoration: none;
+}
+
+.wishlist-back:hover {
+  text-decoration: underline;
+}
+
+.wishlist-header {
+  margin-bottom: clamp(1.5rem, 3vw, 2rem);
+}
+
+.wishlist-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #6366f1;
+  margin-bottom: 0.35rem;
+}
+
+.wishlist-title {
+  margin: 0 0 0.35rem;
+  font-size: clamp(1.65rem, 3vw, 2.1rem);
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+.wishlist-lead {
+  margin: 0;
+  max-width: 46ch;
+  color: #64748b;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.wishlist-loading {
+  color: #64748b;
+  font-size: 0.95rem;
+}
+
+.wishlist-empty {
+  text-align: center;
+  padding: 2.5rem 1.5rem;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px dashed #cbd5e1;
+  border-radius: 1.25rem;
+  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.06);
+}
+
+.wishlist-empty-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  color: #c7d2fe;
+  margin-bottom: 0.75rem;
+}
+
+.wishlist-empty h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.25rem;
+  color: #0f172a;
+}
+
+.wishlist-empty p {
+  margin: 0 0 1.25rem;
+  color: #64748b;
+  font-size: 0.95rem;
+}
+
+.wishlist-empty-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.65rem 1.25rem;
+  border-radius: 0.65rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+  text-decoration: none;
+  color: #fff;
+  background: linear-gradient(135deg, #4338ca 0%, #6366f1 100%);
+  box-shadow: 0 8px 22px rgba(67, 56, 202, 0.35);
+}
+
+.wishlist-empty-cta:hover {
+  filter: brightness(1.05);
+}
+
+.wishlist-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: 1.5rem;
+}

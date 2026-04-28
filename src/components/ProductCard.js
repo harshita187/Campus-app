@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
+  FiArrowRight,
   FiCheck,
   FiClock,
   FiHeart,
@@ -9,19 +10,13 @@ import {
   FiUser,
   FiZap,
 } from "react-icons/fi";
-import { SOCKET_URL } from "../services/api";
+import { useAuth } from "../context/AuthContext";
 import { isWishlisted, toggleWishlist } from "../utils/wishlist";
 import { isCampusEmail } from "../utils/campusEmail";
+import { isListingOwner } from "../utils/isListingOwner";
 import { CategoryFlatIcon } from "./CategoryFlatIcon";
+import { resolveListingImageUrl } from "../utils/listingImageUrl";
 import "./ProductCard.css";
-
-function resolveImageUrl(src) {
-  if (!src || typeof src !== "string" || !src.trim()) return null;
-  const t = src.trim();
-  if (t.startsWith("http://") || t.startsWith("https://")) return t;
-  if (t.startsWith("/")) return `${SOCKET_URL}${t}`;
-  return `${SOCKET_URL}/uploads/${t}`;
-}
 
 const URGENCY_COPY = {
   moving_out: { label: "Moving out", className: "product-tag--urgency-move" },
@@ -29,13 +24,16 @@ const URGENCY_COPY = {
 };
 
 const ProductCard = ({ product, onQuickView }) => {
+  const { user } = useAuth();
   const id = product._id || product.id;
   const firstImage = product?.images?.[0];
-  const primarySrc = useMemo(() => resolveImageUrl(firstImage), [firstImage]);
+  const primarySrc = useMemo(() => resolveListingImageUrl(firstImage), [firstImage]);
 
   const [imageSrc, setImageSrc] = useState(primarySrc);
   const [imageFailed, setImageFailed] = useState(false);
   const [saved, setSaved] = useState(() => isWishlisted(id));
+
+  const isOwnProduct = isListingOwner(product, user);
 
   useEffect(() => {
     setImageSrc(primarySrc);
@@ -105,25 +103,29 @@ const ProductCard = ({ product, onQuickView }) => {
           </div>
         </Link>
 
-        <button
-          type="button"
-          className={`product-wishlist ${saved ? "product-wishlist--active" : ""}`}
-          onClick={onWishlistClick}
-          aria-pressed={saved}
-          aria-label={saved ? "Remove from saved" : "Save listing"}
-        >
-          <FiHeart />
-        </button>
+        {!isOwnProduct ? (
+          <button
+            type="button"
+            className={`product-wishlist ${saved ? "product-wishlist--active" : ""}`}
+            onClick={onWishlistClick}
+            aria-pressed={saved}
+            aria-label={saved ? "Remove from saved" : "Save listing"}
+          >
+            <FiHeart />
+          </button>
+        ) : null}
 
-        <Link
-          to={`/chat/product/${id}`}
-          className="product-quick-chat product-quick-chat--icon-only"
-          onClick={(e) => e.stopPropagation()}
-          aria-label="Quick chat with seller"
-          title="Chat"
-        >
-          <FiMessageCircle aria-hidden />
-        </Link>
+        {!isOwnProduct ? (
+          <Link
+            to={`/chat/product/${id}`}
+            className="product-quick-chat product-quick-chat--icon-only"
+            onClick={(e) => e.stopPropagation()}
+            aria-label="Quick chat with seller"
+            title="Chat"
+          >
+            <FiMessageCircle aria-hidden />
+          </Link>
+        ) : null}
 
         <div className="product-tag-strip">
           {urgencyMeta ? (
@@ -140,6 +142,11 @@ const ProductCard = ({ product, onQuickView }) => {
           ) : (
             <span className="product-tag product-tag--firm">Firm price</span>
           )}
+          {product.collegeLabel ? (
+            <span className="product-tag product-tag--campus" title="Listing campus">
+              {product.collegeLabel}
+            </span>
+          ) : null}
         </div>
       </div>
 
@@ -178,11 +185,21 @@ const ProductCard = ({ product, onQuickView }) => {
             </div>
           </div>
         </Link>
-        {typeof onQuickView === "function" ? (
-          <button type="button" className="product-quick-view-btn" onClick={onQuickViewClick}>
-            Quick view
-          </button>
-        ) : null}
+        <div className="product-card-footer">
+          <Link
+            to={`/product/${id}`}
+            className="product-view-product-btn"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {isOwnProduct ? "View listing" : "View product"}
+            <FiArrowRight aria-hidden className="product-view-product-btn__icon" />
+          </Link>
+          {typeof onQuickView === "function" && !isOwnProduct ? (
+            <button type="button" className="product-quick-view-btn" onClick={onQuickViewClick}>
+              Quick view
+            </button>
+          ) : null}
+        </div>
       </div>
     </div>
   );

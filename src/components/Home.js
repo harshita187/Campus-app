@@ -11,6 +11,7 @@ import {
   FiShoppingBag,
   FiTrendingUp,
   FiUsers,
+  FiZap,
 } from "react-icons/fi";
 import ProductCard from "./ProductCard";
 import { CategoryFlatIcon } from "./CategoryFlatIcon";
@@ -21,6 +22,9 @@ import {
   toggleCategoryNotify,
 } from "../utils/categoryNotify";
 import { getRecentProductIds } from "../utils/recentViewed";
+import { resolveListingImageUrl } from "../utils/listingImageUrl";
+import { useAuth } from "../context/AuthContext";
+import { canSell } from "../utils/roleHelpers";
 import "./Home.css";
 
 const TRENDING_SEARCHES = [
@@ -30,6 +34,225 @@ const TRENDING_SEARCHES = [
   "Gaming laptop",
   "Semester notes",
 ];
+
+/** Demo listings for hero preview + trending when API is empty (UI only). */
+const PLACEHOLDER_LISTINGS = [
+  {
+    _id: "ph-1",
+    title: "TI-84 Plus CE — semester ready",
+    price: 4200,
+    category: "Electronics",
+    images: ["https://picsum.photos/seed/hero-ph1/640/480"],
+  },
+  {
+    _id: "ph-2",
+    title: "Printed notes bundle + solved papers",
+    price: 450,
+    category: "Notes",
+    images: ["https://picsum.photos/seed/hero-ph2/640/480"],
+  },
+  {
+    _id: "ph-3",
+    title: "Hybrid cycle, 21-speed, with lock",
+    price: 6800,
+    category: "Cycle",
+    images: ["https://picsum.photos/seed/hero-ph3/640/480"],
+  },
+  {
+    _id: "ph-4",
+    title: "Desk lamp + extension board",
+    price: 650,
+    category: "Furniture",
+    images: ["https://picsum.photos/seed/hero-ph4/640/480"],
+  },
+  {
+    _id: "ph-5",
+    title: "AirPods Pro (1st gen) — good battery",
+    price: 9200,
+    category: "Electronics",
+    images: ["https://picsum.photos/seed/hero-ph5/640/480"],
+  },
+  {
+    _id: "ph-6",
+    title: "Formal blazer — worn twice",
+    price: 2100,
+    category: "Dress",
+    images: ["https://picsum.photos/seed/hero-ph6/640/480"],
+  },
+  {
+    _id: "ph-7",
+    title: "Mini fridge for hostel",
+    price: 4500,
+    category: "Cooler",
+    images: ["https://picsum.photos/seed/hero-ph7/640/480"],
+  },
+  {
+    _id: "ph-8",
+    title: "Scientific calculator + case",
+    price: 890,
+    category: "Electronics",
+    images: ["https://picsum.photos/seed/hero-ph8/640/480"],
+  },
+];
+
+const BROWSE_CHIPS = [
+  { to: "/products?sort=price-low", label: "Lowest price" },
+  { to: "/products?condition=Brand%20New", label: "Brand new" },
+  { to: "/products?urgency=flash_sale", label: "Flash sales" },
+  { to: "/products?urgency=moving_out", label: "Moving out" },
+];
+
+/** Auto-rotating quick filters (price / condition / urgency) below hero insights. */
+function HeroBrowseSmartRotator() {
+  const wrapRef = useRef(null);
+  const [idx, setIdx] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const [reducedMotion, setReducedMotion] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReducedMotion(mq.matches);
+    const fn = () => setReducedMotion(mq.matches);
+    mq.addEventListener("change", fn);
+    return () => mq.removeEventListener("change", fn);
+  }, []);
+
+  useEffect(() => {
+    if (paused || reducedMotion) return undefined;
+    const id = window.setInterval(() => {
+      setIdx((i) => (i + 1) % BROWSE_CHIPS.length);
+    }, 3600);
+    return () => window.clearInterval(id);
+  }, [paused, reducedMotion]);
+
+  const chip = BROWSE_CHIPS[idx];
+
+  const resumeIfFocusLeft = (e) => {
+    if (!wrapRef.current?.contains(e.relatedTarget)) setPaused(false);
+  };
+
+  return (
+    <div
+      ref={wrapRef}
+      className="hero-browse-rotator hero-benefits-card hero-benefits-card--glass"
+      aria-labelledby="hero-browse-smart-label"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onFocusCapture={() => setPaused(true)}
+      onBlurCapture={resumeIfFocusLeft}
+    >
+      <span id="hero-browse-smart-label" className="hero-browse-rotator-label">
+        Browse smart
+      </span>
+      {reducedMotion ? (
+        <ul className="hero-browse-rotator-static">
+          {BROWSE_CHIPS.map((c) => (
+            <li key={c.to}>
+              <Link to={c.to} className="hero-browse-rotator-static-link">
+                {c.label}
+                <FiArrowRight aria-hidden className="hero-browse-rotator-static-arrow" />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <>
+          <div className="hero-browse-rotator-window">
+            <Link
+              key={chip.to + idx}
+              to={chip.to}
+              className="hero-browse-rotator-link"
+            >
+              <span className="hero-browse-rotator-main">{chip.label}</span>
+              <span className="hero-browse-rotator-sub">
+                Open filtered listings <FiArrowRight aria-hidden />
+              </span>
+            </Link>
+          </div>
+          <div className="hero-browse-rotator-dots" role="tablist" aria-label="Pick a browse mode">
+            {BROWSE_CHIPS.map((c, i) => (
+              <button
+                key={c.to}
+                type="button"
+                role="tab"
+                aria-selected={i === idx}
+                className={`hero-browse-rotator-dot ${i === idx ? "is-active" : ""}`}
+                aria-label={`Show ${c.label}`}
+                onClick={() => setIdx(i)}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function previewThumbUrl(src) {
+  return resolveListingImageUrl(src);
+}
+
+function formatRupee(n) {
+  const x = Number(n);
+  if (Number.isNaN(x)) return "—";
+  return `₹${x.toLocaleString("en-IN")}`;
+}
+
+function HeroPreviewThumb({ product, imgUrl }) {
+  const [broken, setBroken] = useState(false);
+  if (!imgUrl || broken) {
+    return <CategoryFlatIcon name={product.category || "Notes"} size={26} />;
+  }
+  return (
+    <img
+      src={imgUrl}
+      alt=""
+      loading="lazy"
+      onError={() => setBroken(true)}
+    />
+  );
+}
+
+function HeroLivePreview({ items }) {
+  const rows =
+    items && items.length > 0 ? items.slice(0, 3) : PLACEHOLDER_LISTINGS.slice(0, 3);
+  return (
+    <div className="hero-live-preview">
+      <div className="hero-live-preview-head">
+        <div className="hero-live-preview-head-text">
+          <span className="hero-live-preview-kicker">On the marketplace</span>
+          <span className="hero-live-preview-title">Fresh picks</span>
+        </div>
+        <FiZap className="hero-live-preview-spark" aria-hidden />
+      </div>
+      <ul className="hero-live-preview-list">
+        {rows.map((p) => {
+          const id = p._id || p.id;
+          const demo = typeof id === "string" && id.startsWith("ph-");
+          const raw = p.images?.[0];
+          const imgUrl = raw ? previewThumbUrl(raw) : null;
+          return (
+            <li key={String(id)}>
+              <Link
+                to={demo ? "/products" : `/product/${id}`}
+                className="hero-live-preview-row"
+              >
+                <div className="hero-live-preview-thumb">
+                  <HeroPreviewThumb product={p} imgUrl={imgUrl} />
+                </div>
+                <div className="hero-live-preview-meta">
+                  <span className="hero-live-preview-name">{p.title}</span>
+                  <span className="hero-live-preview-price">{formatRupee(p.price)}</span>
+                </div>
+                <FiArrowRight className="hero-live-preview-chevron" aria-hidden />
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
 
 const AVATAR_FALLBACK = [
   { name: "Alex Kumar" },
@@ -59,11 +282,19 @@ function paddedAvatars(recent) {
 
 function DeltaBadge({ pct }) {
   if (pct == null || Number.isNaN(pct)) return null;
-  const up = pct >= 0;
+  const n = Number(pct);
+  if (n === 0) {
+    return (
+      <span className="delta-badge delta-badge--neutral">
+        Live <span className="delta-badge-week">this week</span>
+      </span>
+    );
+  }
+  const up = n > 0;
   return (
     <span className={`delta-badge ${up ? "delta-badge--up" : "delta-badge--down"}`}>
       {up ? "+" : ""}
-      {pct}% <span className="delta-badge-week">this week</span>
+      {n}% <span className="delta-badge-week">this week</span>
     </span>
   );
 }
@@ -206,14 +437,18 @@ function ActivityTicker() {
 const Home = ({ products = [] }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
+  const userCanSell = canSell(user?.role);
   const featuredProducts = products.slice(0, 3);
-  const quickCategories = ["Notes", "Electronics", "Cycle"];
 
   const [heroQuery, setHeroQuery] = useState("");
+  const [heroCategory, setHeroCategory] = useState("");
   const [stats, setStats] = useState(null);
   const [statsLoading, setStatsLoading] = useState(true);
   const [statsLoadFailed, setStatsLoadFailed] = useState(false);
   const [recentProducts, setRecentProducts] = useState([]);
+  const [trendingProducts, setTrendingProducts] = useState([]);
+  const [trendingLoading, setTrendingLoading] = useState(true);
   const [heroSearchOpen, setHeroSearchOpen] = useState(false);
   const heroSearchRef = useRef(null);
 
@@ -260,6 +495,25 @@ const Home = ({ products = [] }) => {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setTrendingLoading(true);
+      try {
+        const data = await productService.list({ limit: 8, sort: "newest" });
+        const items = data?.items || [];
+        if (!cancelled) setTrendingProducts(Array.isArray(items) ? items : []);
+      } catch {
+        if (!cancelled) setTrendingProducts([]);
+      } finally {
+        if (!cancelled) setTrendingLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     if (location.pathname !== "/") return;
     let cancelled = false;
     (async () => {
@@ -288,8 +542,16 @@ const Home = ({ products = [] }) => {
   const onHeroSearch = (e) => {
     e.preventDefault();
     const q = heroQuery.trim();
-    navigate(q ? `/products?q=${encodeURIComponent(q)}` : "/products");
+    const cat = heroCategory.trim();
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (cat) params.set("category", cat);
+    const qs = params.toString();
+    navigate(qs ? `/products?${qs}` : "/products");
   };
+
+  const trendingDisplay =
+    trendingProducts.length > 0 ? trendingProducts : PLACEHOLDER_LISTINGS;
 
   return (
     <div className="home">
@@ -297,37 +559,67 @@ const Home = ({ products = [] }) => {
         <div className="hero-bg" aria-hidden />
         <div className="container hero-shell hero-shell--search-first">
           <div className="hero-copy">
-            <span className="eyebrow">Peer-to-peer on campus</span>
-            <h1 className="hero-title">
-              Buy and sell on campus—fast, clear, and student-first.
-            </h1>
-            <p className="hero-description">
-              Browse by category, spot fresh listings, and jump into chat without
-              clutter. Everything is built around how students actually trade.
-            </p>
+            <div className="hero-copy-lead">
+              <span className="eyebrow">Peer-to-peer on campus</span>
+              <h1 className="hero-title">
+                Buy &amp; sell within your campus in minutes.
+              </h1>
+              <p className="hero-description">
+                Find deals fast. Chat instantly. Trade smarter.
+              </p>
+            </div>
 
             <div className="hero-search-wrap" ref={heroSearchRef}>
               <form className="hero-search" onSubmit={onHeroSearch} role="search">
                 <label htmlFor="hero-search-input" className="visually-hidden">
                   Search listings
                 </label>
-                <div className="hero-search-field">
-                  <FiSearch className="hero-search-icon" aria-hidden />
-                  <input
-                    id="hero-search-input"
-                    type="search"
-                    value={heroQuery}
-                    onChange={(e) => setHeroQuery(e.target.value)}
-                    onFocus={() => setHeroSearchOpen(true)}
-                    placeholder="Search for notes, cycles, electronics…"
-                    autoComplete="off"
-                    enterKeyHint="search"
-                    aria-controls={heroSearchOpen ? "hero-search-suggestions" : undefined}
-                  />
+                <div className="hero-search-main">
+                  <div className="hero-search-field">
+                    <FiSearch className="hero-search-icon" aria-hidden />
+                    <input
+                      id="hero-search-input"
+                      type="search"
+                      value={heroQuery}
+                      onChange={(e) => setHeroQuery(e.target.value)}
+                      onFocus={() => setHeroSearchOpen(true)}
+                      placeholder="Search for books, cycles, electronics..."
+                      autoComplete="off"
+                      enterKeyHint="search"
+                      aria-controls={heroSearchOpen ? "hero-search-suggestions" : undefined}
+                    />
+                  </div>
+                  <div className="hero-search-category-shell">
+                    <label htmlFor="hero-category" className="visually-hidden">
+                      Category filter
+                    </label>
+                    <select
+                      id="hero-category"
+                      className="hero-search-category"
+                      value={heroCategory}
+                      onChange={(e) => setHeroCategory(e.target.value)}
+                      aria-label="Filter by category"
+                    >
+                      <option value="">All categories</option>
+                      {categories.map((c) => (
+                        <option key={c.name} value={c.name}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <button type="submit" className="hero-search-submit">
+                    <FiSearch aria-hidden />
+                    <span>Search</span>
+                  </button>
+                  <Link
+                    to={userCanSell ? "/add-product" : "/dashboard"}
+                    className="hero-sell-now-btn"
+                  >
+                    <FiShoppingBag aria-hidden />
+                    {userCanSell ? "Sell Now" : "Dashboard"}
+                  </Link>
                 </div>
-                <button type="submit" className="hero-search-submit">
-                  Search
-                </button>
               </form>
               {heroSearchOpen ? (
                 <div
@@ -357,31 +649,6 @@ const Home = ({ products = [] }) => {
               ) : null}
             </div>
 
-            <div className="hero-browse-filters" aria-label="Quick marketplace filters">
-              <span className="hero-browse-filters-label">Browse smart</span>
-              <Link to="/products?sort=price-low" className="hero-browse-chip">
-                Lowest price
-              </Link>
-              <Link to="/products?sort=price-high" className="hero-browse-chip">
-                Premium picks
-              </Link>
-              <Link to="/products?condition=Brand%20New" className="hero-browse-chip">
-                Brand new
-              </Link>
-              <Link to="/products?condition=Open%20Box" className="hero-browse-chip">
-                Open box
-              </Link>
-              <Link to="/products?condition=Heavily%20Used" className="hero-browse-chip">
-                Heavily used
-              </Link>
-              <Link to="/products?urgency=moving_out" className="hero-browse-chip">
-                Moving out
-              </Link>
-              <Link to="/products?urgency=flash_sale" className="hero-browse-chip">
-                Flash sales
-              </Link>
-            </div>
-
             <div className="hero-insights">
               <div className="insight-card">
                 <FiClock />
@@ -399,66 +666,11 @@ const Home = ({ products = [] }) => {
               </div>
             </div>
 
-            <div className="hero-chips" aria-label="Popular categories">
-              <span className="hero-chips-label">Jump in:</span>
-              {quickCategories.map((name) => (
-                <Link
-                  key={name}
-                  to={`/products?category=${encodeURIComponent(name)}`}
-                  className="hero-chip"
-                >
-                  {name}
-                </Link>
-              ))}
-              <Link to="/products" className="hero-chip hero-chip--more">
-                All categories <FiArrowRight aria-hidden />
-              </Link>
-            </div>
+            <HeroBrowseSmartRotator />
           </div>
 
           <aside className="hero-aside" aria-label="Product highlights">
-            <div className="hero-preview" aria-hidden>
-              <div className="hero-preview-glow" />
-              <div className="hero-preview-frame">
-                <div className="hero-preview-top">
-                  <span className="hero-preview-dots" aria-hidden>
-                    <span className="hero-preview-dot" />
-                    <span className="hero-preview-dot" />
-                    <span className="hero-preview-dot" />
-                  </span>
-                  <span className="hero-preview-chrome-title">Sample feed</span>
-                </div>
-                <div className="hero-preview-body">
-                  <div className="hero-preview-row">
-                    <span className="hero-preview-thumb">
-                      <CategoryFlatIcon name="Notes" size={24} />
-                    </span>
-                    <span className="hero-preview-lines">
-                      <span />
-                      <span />
-                    </span>
-                  </div>
-                  <div className="hero-preview-row hero-preview-row--hot">
-                    <span className="hero-preview-thumb hero-preview-thumb--accent">
-                      <CategoryFlatIcon name="Electronics" size={24} />
-                    </span>
-                    <span className="hero-preview-lines">
-                      <span />
-                      <span />
-                    </span>
-                  </div>
-                  <div className="hero-preview-row">
-                    <span className="hero-preview-thumb">
-                      <CategoryFlatIcon name="Cycle" size={24} />
-                    </span>
-                    <span className="hero-preview-lines">
-                      <span />
-                      <span />
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <HeroLivePreview items={featuredProducts} />
 
             <div className="hero-benefits-card hero-benefits-card--glass">
               <span className="hero-benefits-kicker">Why it works</span>
@@ -477,32 +689,6 @@ const Home = ({ products = [] }) => {
                   <span>Message sellers and agree on meetups in one place.</span>
                 </li>
               </ul>
-            </div>
-
-            <div className="hero-metrics">
-              <div className="metric-card">
-                <strong>{usersText}</strong>
-                <span>Students joined</span>
-              </div>
-              <div className="metric-card">
-                <strong>{listingsText}</strong>
-                <span>Live listings</span>
-              </div>
-              <div className="metric-card">
-                <strong>
-                  {stats != null && !statsLoading
-                    ? stockedCategories > 0
-                      ? stockedCategories
-                      : "—"
-                    : "—"}
-                </strong>
-                <span>Categories in stock</span>
-                {stats != null && !statsLoading && stockedCategories === 0 ? (
-                  <Link to="/add-product" className="metric-card-cta">
-                    Be the first to list in a category
-                  </Link>
-                ) : null}
-              </div>
             </div>
           </aside>
         </div>
@@ -581,8 +767,11 @@ const Home = ({ products = [] }) => {
                   <p className="social-proof-label">Live listings</p>
                   <p className="social-proof-hint">Active items you can browse today</p>
                   {!statsLoading && listingsCount === 0 ? (
-                    <Link to="/add-product" className="social-proof-cta">
-                      List something and seed the marketplace
+                    <Link
+                      to={userCanSell ? "/add-product" : "/products"}
+                      className="social-proof-cta"
+                    >
+                      {userCanSell ? "List something and seed the marketplace" : "Browse the marketplace"}
                     </Link>
                   ) : null}
                   <div className="social-proof-spark">
@@ -607,8 +796,13 @@ const Home = ({ products = [] }) => {
                   <p className="social-proof-hint">From notes to electronics and more</p>
                   <div className="social-proof-spark social-proof-spark--muted">
                     {!statsLoading && stockedCategories === 0 ? (
-                      <Link to="/add-product" className="social-proof-cta social-proof-cta--inline">
-                        Be the first to list something here
+                      <Link
+                        to={userCanSell ? "/add-product" : "/products"}
+                        className="social-proof-cta social-proof-cta--inline"
+                      >
+                        {userCanSell
+                          ? "Be the first to list something here"
+                          : "Browse listings by category"}
                       </Link>
                     ) : (
                       <p className="social-proof-mini-copy">
@@ -618,6 +812,36 @@ const Home = ({ products = [] }) => {
                   </div>
                 </article>
               </>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <section className="home-trending-section" aria-labelledby="trending-heading">
+        <div className="container">
+          <div className="section-heading">
+            <div>
+              <span className="section-kicker">Trending</span>
+              <h2 id="trending-heading">Recently added</h2>
+              <p className="home-trending-lead">
+                New listings from campus—save what you like and chat before someone else grabs it.
+              </p>
+            </div>
+            <Link to="/products?sort=newest" className="view-all">
+              View all new <FiArrowRight aria-hidden />
+            </Link>
+          </div>
+          <div className="products-grid products-grid--trending">
+            {trendingLoading ? (
+              <>
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="home-trending-skeleton" aria-hidden />
+                ))}
+              </>
+            ) : (
+              trendingDisplay.map((product) => (
+                <ProductCard key={product._id || product.id} product={product} />
+              ))
             )}
           </div>
         </div>
@@ -661,10 +885,14 @@ const Home = ({ products = [] }) => {
                             Nothing listed here yet—be the first.
                           </p>
                           <Link
-                            to={`/add-product?category=${encodeURIComponent(category.name)}`}
+                            to={
+                              userCanSell
+                                ? `/add-product?category=${encodeURIComponent(category.name)}`
+                                : "/products"
+                            }
                             className="category-first-list-cta"
                           >
-                            List in {category.name}
+                            {userCanSell ? `List in ${category.name}` : `Browse ${category.name}`}
                           </Link>
                         </>
                       )}
@@ -703,8 +931,11 @@ const Home = ({ products = [] }) => {
               <div className="empty-state">
                 <h3>No featured products yet</h3>
                 <p>New student listings will show up here as soon as they’re added.</p>
-                <Link to="/add-product" className="btn btn-primary empty-state-cta">
-                  Be the first to list something
+                <Link
+                  to={userCanSell ? "/add-product" : "/products"}
+                  className="btn btn-primary empty-state-cta"
+                >
+                  {userCanSell ? "Be the first to list something" : "Browse the marketplace"}
                 </Link>
               </div>
             )}
@@ -728,7 +959,7 @@ const Home = ({ products = [] }) => {
               </Link>
             </div>
             <div className="products-grid products-grid--recent">
-              {recentProducts.map((product) => (
+              {              recentProducts.map((product) => (
                 <ProductCard key={product._id || product.id} product={product} />
               ))}
             </div>
@@ -812,9 +1043,12 @@ const Home = ({ products = [] }) => {
                 <FiSearch />
                 Browse products
               </Link>
-              <Link to="/add-product" className="btn btn-secondary">
+              <Link
+                to={userCanSell ? "/add-product" : "/dashboard"}
+                className="btn btn-secondary"
+              >
                 <FiShoppingBag />
-                Sell an item
+                {userCanSell ? "Sell an item" : "Open dashboard"}
               </Link>
             </div>
           </div>

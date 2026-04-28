@@ -65,9 +65,9 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const signup = async (name, email, password, phone) => {
+  const signup = async (name, email, password, phone, campusName, role) => {
     try {
-      await authService.signup(name, email, password, phone);
+      await authService.signup(name, email, password, phone, campusName, role);
       return { success: true };
     } catch (error) {
       return {

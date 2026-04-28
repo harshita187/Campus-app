@@ -2,7 +2,9 @@ import React, { useEffect, useRef, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import {
   FiChevronDown,
+  FiHeart,
   FiHome,
+  FiLayout,
   FiList,
   FiPlus,
   FiLogIn,
@@ -13,6 +15,8 @@ import {
   FiX,
 } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
+import { canSell } from "../utils/roleHelpers";
+import { getWishlistIds } from "../utils/wishlist";
 import { useChatNotifications } from "../context/ChatNotificationContext";
 import { isCampusEmail } from "../utils/campusEmail";
 import "./Header.css";
@@ -25,6 +29,18 @@ const Header = () => {
   const { user, logout, isAuthenticated } = useAuth();
   const chatNotif = useChatNotifications();
   const unreadCount = chatNotif?.unreadCount ?? 0;
+  const [wishlistCount, setWishlistCount] = useState(() => getWishlistIds().length);
+
+  useEffect(() => {
+    const syncWish = () => setWishlistCount(getWishlistIds().length);
+    syncWish();
+    window.addEventListener("campus:wishlist-changed", syncWish);
+    window.addEventListener("storage", syncWish);
+    return () => {
+      window.removeEventListener("campus:wishlist-changed", syncWish);
+      window.removeEventListener("storage", syncWish);
+    };
+  }, []);
 
   useEffect(() => {
     if (!userMenuOpen) return;
@@ -75,7 +91,26 @@ const Header = () => {
             <FiList />
             Products
           </NavLink>
+          {isAuthenticated ? (
+            <NavLink to="/dashboard" className={navClassName} onClick={closeMenu}>
+              <FiLayout />
+              Dashboard
+            </NavLink>
+          ) : null}
           {isAuthenticated && (
+            <NavLink to="/wishlist" className={navClassName} onClick={closeMenu}>
+              <span className="nav-link-with-badge">
+                <FiHeart />
+                Saved
+                {wishlistCount > 0 ? (
+                  <span className="nav-chat-badge" aria-label={`${wishlistCount} saved listings`}>
+                    {wishlistCount > 9 ? "9+" : wishlistCount}
+                  </span>
+                ) : null}
+              </span>
+            </NavLink>
+          )}
+          {isAuthenticated && canSell(user?.role) ? (
             <NavLink
               to="/add-product"
               className={({ isActive }) =>
@@ -86,7 +121,7 @@ const Header = () => {
               <FiPlus />
               Sell Item
             </NavLink>
-          )}
+          ) : null}
           {isAuthenticated && (
             <NavLink to="/chat" className={navClassName} onClick={closeMenu}>
               <span className="nav-link-with-badge">
@@ -132,28 +167,43 @@ const Header = () => {
                       </span>
                     ) : null}
                   </div>
+                  {canSell(user?.role) ? (
+                    <Link
+                      role="menuitem"
+                      to="/products?mine=1"
+                      className="user-dropdown-item"
+                      onClick={() => {
+                        setUserMenuOpen(false);
+                        closeMenu();
+                      }}
+                    >
+                      My listings
+                    </Link>
+                  ) : null}
                   <Link
                     role="menuitem"
-                    to="/products?mine=1"
+                    to="/wishlist"
                     className="user-dropdown-item"
                     onClick={() => {
                       setUserMenuOpen(false);
                       closeMenu();
                     }}
                   >
-                    My listings
+                    Wishlist (saved)
                   </Link>
-                  <Link
-                    role="menuitem"
-                    to="/add-product"
-                    className="user-dropdown-item"
-                    onClick={() => {
-                      setUserMenuOpen(false);
-                      closeMenu();
-                    }}
-                  >
-                    Post an item
-                  </Link>
+                  {canSell(user?.role) ? (
+                    <Link
+                      role="menuitem"
+                      to="/add-product"
+                      className="user-dropdown-item"
+                      onClick={() => {
+                        setUserMenuOpen(false);
+                        closeMenu();
+                      }}
+                    >
+                      Post an item
+                    </Link>
+                  ) : null}
                   <Link
                     role="menuitem"
                     to="/chat"

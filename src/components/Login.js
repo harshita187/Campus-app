@@ -22,7 +22,7 @@ const Login = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate("/");
+      navigate("/dashboard");
     }
   }, [isAuthenticated, navigate]);
 
@@ -43,7 +43,7 @@ const Login = () => {
     const result = await login(formData.email.trim(), formData.password);
 
     if (result.success) {
-      navigate("/");
+      navigate("/dashboard");
     } else {
       setError(result.message);
     }

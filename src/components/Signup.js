@@ -1,8 +1,36 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { FiMail, FiLock, FiUser, FiPhone, FiUserPlus } from 'react-icons/fi';
-import { useAuth } from '../context/AuthContext';
-import './Signup.css';
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import {
+  FiMail,
+  FiLock,
+  FiUser,
+  FiPhone,
+  FiUserPlus,
+  FiMapPin,
+  FiShoppingBag,
+  FiTag,
+} from "react-icons/fi";
+import { useAuth } from "../context/AuthContext";
+import { productService } from "../services/productService";
+import "./Signup.css";
+
+const ROLE_OPTIONS = [
+  {
+    value: "buyer",
+    title: "Buyer",
+    desc: "Browse, save listings, and chat to buy. You will not post items for sale.",
+  },
+  {
+    value: "seller",
+    title: "Seller",
+    desc: "List items and manage chats. You can still browse the marketplace.",
+  },
+  {
+    value: "both",
+    title: "Both",
+    desc: "Full access: buy and sell from one account (recommended).",
+  },
+];
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -10,18 +38,37 @@ const Signup = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/');
+      navigate("/dashboard");
     }
   }, [isAuthenticated, navigate]);
+
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    phone: '',
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    phone: "",
+    campusName: "",
+    role: "both",
   });
-  const [error, setError] = useState('');
+  const [collegesMeta, setCollegesMeta] = useState(null);
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await productService.getCollegesMeta();
+        if (!cancelled && data?.colleges?.length) setCollegesMeta(data);
+      } catch {
+        if (!cancelled) setCollegesMeta(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -29,36 +76,48 @@ const Signup = () => {
       ...prev,
       [name]: value,
     }));
-    setError('');
+    setError("");
   };
 
   const validateForm = () => {
     if (!formData.name.trim()) {
-      setError('Name is required');
+      setError("Name is required");
       return false;
     }
     if (!formData.email.trim()) {
-      setError('Email is required');
+      setError("Email is required");
       return false;
     }
     if (!formData.password) {
-      setError('Password is required');
+      setError("Password is required");
       return false;
     }
     if (formData.password.length < 8) {
-      setError('Password must be at least 8 characters');
+      setError("Password must be at least 8 characters");
       return false;
     }
-    if (!/[A-Z]/.test(formData.password) || !/[a-z]/.test(formData.password) || !/[0-9]/.test(formData.password)) {
-      setError('Password must include uppercase, lowercase, and a number');
+    if (
+      !/[A-Z]/.test(formData.password) ||
+      !/[a-z]/.test(formData.password) ||
+      !/[0-9]/.test(formData.password)
+    ) {
+      setError("Password must include uppercase, lowercase, and a number");
       return false;
     }
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
+      setError("Passwords do not match");
       return false;
     }
     if (!formData.phone.trim()) {
-      setError('Phone number is required');
+      setError("Phone number is required");
+      return false;
+    }
+    if (!formData.campusName.trim() || formData.campusName.trim().length < 2) {
+      setError("Enter your institute or campus name (at least 2 characters)");
+      return false;
+    }
+    if (!formData.role) {
+      setError("Choose how you will use Campus Market");
       return false;
     }
     return true;
@@ -66,7 +125,7 @@ const Signup = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
     if (!validateForm()) {
       return;
@@ -78,17 +137,21 @@ const Signup = () => {
       formData.name,
       formData.email,
       formData.password,
-      formData.phone
+      formData.phone,
+      formData.campusName.trim(),
+      formData.role
     );
 
     if (result.success) {
-      navigate('/login');
+      navigate("/login");
     } else {
       setError(result.message);
     }
 
     setLoading(false);
   };
+
+  const datalistId = "campus-suggestions-list";
 
   return (
     <div className="signup-container">
@@ -153,6 +216,69 @@ const Signup = () => {
           </div>
 
           <div className="form-group">
+            <label htmlFor="campusName">Your campus / institute</label>
+            <div className="input-wrapper">
+              <FiMapPin className="input-icon" />
+              <input
+                type="text"
+                id="campusName"
+                name="campusName"
+                value={formData.campusName}
+                onChange={handleChange}
+                placeholder="Type any college or university name"
+                list={collegesMeta?.colleges?.length ? datalistId : undefined}
+                autoComplete="organization"
+                maxLength={120}
+                required
+                aria-describedby="campusName-hint"
+              />
+            </div>
+            {collegesMeta?.colleges?.length ? (
+              <datalist id={datalistId}>
+                {collegesMeta.colleges.map((c) => (
+                  <option key={c.id} value={`${c.name}${c.city ? ` — ${c.city}` : ""}`} />
+                ))}
+              </datalist>
+            ) : null}
+            <p id="campusName-hint" className="signup-field-hint">
+              Type your real campus name—any school works. Optional suggestions appear while you
+              type. This tags your listings so others can search by campus.
+            </p>
+          </div>
+
+          <fieldset className="signup-fieldset">
+            <legend className="signup-fieldset-legend">How will you use Campus Market?</legend>
+            <div className="signup-role-grid">
+              {ROLE_OPTIONS.map((opt) => {
+                const active = formData.role === opt.value;
+                return (
+                  <label
+                    key={opt.value}
+                    className={`signup-role-card ${active ? "signup-role-card--active" : ""}`}
+                  >
+                    <input
+                      type="radio"
+                      name="role"
+                      value={opt.value}
+                      checked={active}
+                      onChange={handleChange}
+                    />
+                    <span className="signup-role-title">
+                      {opt.value === "buyer" ? (
+                        <FiShoppingBag aria-hidden />
+                      ) : (
+                        <FiTag aria-hidden />
+                      )}
+                      {opt.title}
+                    </span>
+                    <span className="signup-role-desc">{opt.desc}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </fieldset>
+
+          <div className="form-group">
             <label htmlFor="password">Password</label>
             <div className="input-wrapper">
               <FiLock className="input-icon" />
@@ -185,13 +311,13 @@ const Signup = () => {
           </div>
 
           <button type="submit" className="signup-submit-btn" disabled={loading}>
-            {loading ? 'Creating account...' : 'Create Account'}
+            {loading ? "Creating account..." : "Create Account"}
           </button>
         </form>
 
         <div className="signup-footer">
           <p>
-            Already have an account?{' '}
+            Already have an account?{" "}
             <Link to="/login" className="link">
               Sign in
             </Link>

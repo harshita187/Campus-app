@@ -1,13 +1,21 @@
+.edit-loading-msg {
+  padding: 3rem 1rem;
+  text-align: center;
+  font-weight: 600;
+  color: #64748b;
+}
+
 .add-product {
   min-height: 100vh;
   background: #f8fafc;
   padding: 2rem 0;
 }
 
-.container {
+/* Scoped so global App .container (dashboard shell) is not overridden app-wide */
+.add-product .container {
   max-width: 800px;
-  margin: 0 auto;
-  padding: 0 2rem;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .page-header {
@@ -78,6 +86,53 @@
   font-size: 1rem;
   transition: border-color 0.3s ease;
   font-family: inherit;
+}
+
+.form-group input.input-file-native {
+  width: 100%;
+  max-width: 100%;
+  padding: 0.65rem 0.75rem;
+  border: 2px dashed #cbd5e1;
+  border-radius: 10px;
+  background: #f8fafc;
+  font-size: 0.9rem;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.form-group input.input-file-native::file-selector-button {
+  margin-right: 0.75rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid #c7d2fe;
+  background: #eef2ff;
+  color: #4338ca;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.form-group input.input-file-native:hover {
+  border-color: #94a3b8;
+  background: #f1f5f9;
+}
+
+.form-group-description textarea {
+  position: relative;
+  z-index: 1;
+}
+
+.form-group-file {
+  position: relative;
+  z-index: 0;
+}
+
+.field-hint {
+  display: block;
+  font-size: 0.8rem;
+  color: #64748b;
+  margin-top: 0.35rem;
+  line-height: 1.4;
 }
 
 .form-group input:focus,
@@ -283,8 +338,13 @@
 }
 
 @media (max-width: 768px) {
-  .container {
-    padding: 0 1rem;
+  .add-product {
+    padding: 1.25rem 0;
+  }
+
+  .add-product .container {
+    padding-left: max(1rem, env(safe-area-inset-left, 0));
+    padding-right: max(1rem, env(safe-area-inset-right, 0));
   }
 
   .page-header h1 {
@@ -297,6 +357,12 @@
 
   .form-row {
     grid-template-columns: 1fr;
+  }
+
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    font-size: 16px;
   }
 
   .product-preview {

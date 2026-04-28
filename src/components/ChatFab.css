@@ -1,7 +1,7 @@
 .chat-fab {
   position: fixed;
-  right: 1.25rem;
-  bottom: 1.25rem;
+  right: max(1.25rem, env(safe-area-inset-right, 0px));
+  bottom: max(1.25rem, env(safe-area-inset-bottom, 0px));
   z-index: 1000;
   width: 3.5rem;
   height: 3.5rem;
@@ -28,8 +28,8 @@
 
 @media (min-width: 900px) {
   .chat-fab {
-    right: 1.75rem;
-    bottom: 1.75rem;
+    right: max(1.75rem, env(safe-area-inset-right, 0px));
+    bottom: max(1.75rem, env(safe-area-inset-bottom, 0px));
     width: 3.65rem;
     height: 3.65rem;
   }

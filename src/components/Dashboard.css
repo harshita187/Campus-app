@@ -1,0 +1,140 @@
+.dashboard-page {
+  min-height: calc(100vh - 80px);
+  padding: clamp(2rem, 4vw, 3rem) 0;
+  background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+}
+
+.dashboard-inner {
+  max-width: 900px;
+}
+
+.dashboard-header {
+  margin-bottom: 2rem;
+}
+
+.dashboard-kicker {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6366f1;
+  margin: 0 0 0.35rem;
+}
+
+.dashboard-header h1 {
+  margin: 0 0 0.5rem;
+  font-size: clamp(1.75rem, 3vw, 2.25rem);
+  color: #0f172a;
+}
+
+.dashboard-lead {
+  margin: 0;
+  max-width: 42rem;
+  color: #475569;
+  line-height: 1.55;
+  font-size: 1rem;
+}
+
+.dashboard-campus {
+  margin: 1rem 0 0;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.9375rem;
+  color: #334155;
+}
+
+.dashboard-campus svg {
+  color: #6366f1;
+  flex-shrink: 0;
+}
+
+.dashboard-flash {
+  margin: 1rem 0 0;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  color: #92400e;
+  font-size: 0.9rem;
+}
+
+.dashboard-grid {
+  display: grid;
+  gap: 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .dashboard-grid--both {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.dashboard-panel {
+  background: #fff;
+  border-radius: 1.25rem;
+  padding: 1.5rem 1.35rem;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.dashboard-panel--buy {
+  border-top: 3px solid #6366f1;
+}
+
+.dashboard-panel--sell {
+  border-top: 3px solid #7c3aed;
+}
+
+.dashboard-panel-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.15rem;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: #0f172a;
+}
+
+.dashboard-panel-desc {
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.dashboard-links {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.dashboard-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.65rem;
+  color: #4338ca;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.15s ease;
+}
+
+.dashboard-link:hover {
+  background: #eef2ff;
+}
+
+.dashboard-link--primary {
+  background: linear-gradient(135deg, #6366f1, #7c3aed);
+  color: #fff;
+  justify-content: center;
+  padding: 0.65rem 1rem;
+}
+
+.dashboard-link--primary:hover {
+  filter: brightness(1.05);
+  background: linear-gradient(135deg, #6366f1, #7c3aed);
+}

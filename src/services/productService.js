@@ -5,6 +5,10 @@ export const productService = {
     const response = await apiClient.get("/products/stats/summary");
     return response.data;
   },
+  getCollegesMeta: async () => {
+    const response = await apiClient.get("/products/meta/colleges");
+    return response.data;
+  },
   list: async (params = {}) => {
     const response = await apiClient.get("/products", { params });
     return response.data;

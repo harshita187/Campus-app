@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { isBuyerOnly } from '../utils/roleHelpers';
 import { productService } from '../services/productService';
 import { uploadService } from '../services/uploadService';
-import { SOCKET_URL } from "../services/api";
+import { resolveListingImageUrl } from "../utils/listingImageUrl";
 import './AddProduct.css';
 
 const FALLBACK_IMAGE =
@@ -11,12 +12,52 @@ const FALLBACK_IMAGE =
 
 const CATEGORIES = ['Notes', 'Cycle', 'Dress', 'Cooler', 'Electronics', 'Furniture', 'Others'];
 
+const PICKUP_SUGGESTIONS = [
+  'Hostel 4',
+  'Hostel 7',
+  'Library pickup',
+  'Main gate',
+  'Food court',
+  'Academic block',
+  'On campus (confirm with seller)',
+];
+
+/** Map listing-urgency field (preset labels or free text) to stored urgency + optional note. */
+function parseUrgencyInput(input) {
+  const raw = (input || '').trim();
+  if (!raw) return { urgency: 'none', urgencyNote: '' };
+  const lower = raw.toLowerCase();
+  if (lower === 'none' || lower === 'no urgency tag' || lower === 'no urgency') {
+    return { urgency: 'none', urgencyNote: '' };
+  }
+  if (lower === 'moving_out' || lower === 'moving out soon') {
+    return { urgency: 'moving_out', urgencyNote: '' };
+  }
+  if (lower === 'flash_sale' || lower === 'flash sale') {
+    return { urgency: 'flash_sale', urgencyNote: '' };
+  }
+  return { urgency: 'none', urgencyNote: raw.slice(0, 120) };
+}
+
+const PRODUCT_CONDITIONS = [
+  'Brand New',
+  'Open Box',
+  'Like New',
+  'Excellent',
+  'Good',
+  'Fair',
+  'Heavily Used',
+];
+
 const AddProduct = () => {
   const navigate = useNavigate();
+  const { id: editProductId } = useParams();
+  const isEdit = Boolean(editProductId);
   const [searchParams] = useSearchParams();
-  const { user } = useAuth();
-  const categoryFromUrl = searchParams.get('category');
-  const initialCategory = CATEGORIES.includes(categoryFromUrl) ? categoryFromUrl : 'Notes';
+  const { user, loading: authLoading } = useAuth();
+  const categoryFromUrl = searchParams.get('category')?.trim() || '';
+  const initialCategory =
+    categoryFromUrl.length >= 2 && categoryFromUrl.length <= 40 ? categoryFromUrl : 'Notes';
 
   const [formData, setFormData] = useState({
     title: '',
@@ -28,9 +69,13 @@ const AddProduct = () => {
     contact: '',
     pickupLocation: '',
     negotiable: true,
-    urgency: 'none',
+    urgencyInput: 'No urgency tag',
     images: [],
   });
+
+  const [errors, setErrors] = useState({});
+  const [uploading, setUploading] = useState(false);
+  const [editHydrating, setEditHydrating] = useState(isEdit);
 
   useEffect(() => {
     if (user) {
@@ -43,13 +88,81 @@ const AddProduct = () => {
   }, [user]);
 
   useEffect(() => {
-    if (CATEGORIES.includes(categoryFromUrl)) {
+    if (authLoading) return;
+    if (isEdit) return;
+    if (user && isBuyerOnly(user.role)) {
+      navigate("/dashboard", {
+        replace: true,
+        state: {
+          message:
+            "Buyer accounts cannot post listings. Sign up as Seller or Both to sell on Campus Market.",
+        },
+      });
+    }
+  }, [authLoading, isEdit, user, navigate]);
+
+  useEffect(() => {
+    if (isEdit) return;
+    if (categoryFromUrl.length >= 2 && categoryFromUrl.length <= 40) {
       setFormData((prev) => ({ ...prev, category: categoryFromUrl }));
     }
-  }, [categoryFromUrl]);
+  }, [isEdit, categoryFromUrl]);
 
-  const [errors, setErrors] = useState({});
-  const [uploading, setUploading] = useState(false);
+  useEffect(() => {
+    if (!isEdit) {
+      setEditHydrating(false);
+      return;
+    }
+    if (authLoading) return;
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      setEditHydrating(true);
+      try {
+        const data = await productService.getById(editProductId);
+        const uid = user._id ?? user.id;
+        const sid = data.sellerId?._id ?? data.sellerId;
+        if (String(sid) !== String(uid)) {
+          navigate("/products");
+          return;
+        }
+        if (cancelled) return;
+        setFormData((prev) => {
+          const note = typeof data.urgencyNote === "string" ? data.urgencyNote.trim() : "";
+          let urgencyInput = "No urgency tag";
+          if (note) urgencyInput = note;
+          else if (data.urgency === "moving_out") urgencyInput = "Moving out soon";
+          else if (data.urgency === "flash_sale") urgencyInput = "Flash sale";
+          return {
+            ...prev,
+            title: data.title || "",
+            price: data.price != null ? String(data.price) : "",
+            category: (data.category && String(data.category).trim()) || prev.category,
+            condition: (data.condition && String(data.condition).trim()) || prev.condition,
+            description: data.description || "",
+            seller: user.name || "",
+            contact: user.email || "",
+            pickupLocation: typeof data.pickupLocation === "string" ? data.pickupLocation : "",
+            negotiable: data.negotiable !== false,
+            urgencyInput,
+            images: Array.isArray(data.images) ? data.images : [],
+          };
+        });
+      } catch {
+        navigate("/products");
+      } finally {
+        if (!cancelled) setEditHydrating(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isEdit, editProductId, user, authLoading, navigate]);
   /** Local blob URLs so preview updates immediately while upload runs */
   const [localPreviewUrls, setLocalPreviewUrls] = useState([]);
   const localPreviewUrlsRef = useRef([]);
@@ -69,35 +182,12 @@ const AddProduct = () => {
   }, [revokePreviewUrls]);
 
   const getResolvedImage = (src) => {
-    if (!src || typeof src !== "string") return FALLBACK_IMAGE;
-    if (src.startsWith("http://") || src.startsWith("https://")) return src;
-    if (src.startsWith("/")) return `${SOCKET_URL}${src}`;
-    return `${SOCKET_URL}/uploads/${src}`;
+    const u = resolveListingImageUrl(src);
+    return u || FALLBACK_IMAGE;
   };
 
-  const pickupOptions = [
-    { value: '', label: 'Not specified' },
-    { value: 'Hostel 4', label: 'Hostel 4' },
-    { value: 'Hostel 7', label: 'Hostel 7' },
-    { value: 'Library pickup', label: 'Library pickup' },
-    { value: 'Main gate', label: 'Main gate' },
-    { value: 'Food court', label: 'Food court' },
-    { value: 'Academic block', label: 'Academic block' },
-  ];
-  const conditions = [
-    'Brand New',
-    'Open Box',
-    'Like New',
-    'Excellent',
-    'Good',
-    'Fair',
-    'Heavily Used',
-  ];
-  const urgencyOptions = [
-    { value: 'none', label: 'No urgency tag' },
-    { value: 'moving_out', label: 'Moving out soon' },
-    { value: 'flash_sale', label: 'Flash sale' },
-  ];
+  const conditions = PRODUCT_CONDITIONS;
+  const urgencySuggestions = ['No urgency tag', 'Moving out soon', 'Flash sale'];
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -120,6 +210,14 @@ const AddProduct = () => {
     
     if (!formData.title.trim()) newErrors.title = 'Title is required';
     if (!formData.price || formData.price <= 0) newErrors.price = 'Valid price is required';
+    const cat = formData.category.trim();
+    if (cat.length < 2) newErrors.category = 'Category must be at least 2 characters';
+    if (cat.length > 40) newErrors.category = 'Category must be at most 40 characters';
+    const cond = formData.condition.trim();
+    if (cond.length < 2) newErrors.condition = 'Condition must be at least 2 characters';
+    if (cond.length > 40) newErrors.condition = 'Condition must be at most 40 characters';
+    const pick = (formData.pickupLocation || '').trim();
+    if (pick.length > 80) newErrors.pickupLocation = 'Pickup / meet point: max 80 characters';
     if (!formData.description.trim()) newErrors.description = 'Description is required';
     if (!formData.images || formData.images.length === 0) newErrors.images = 'At least one image is required';
     
@@ -153,7 +251,9 @@ const AddProduct = () => {
       });
       setFormData((prev) => ({
         ...prev,
-        images: uploaded,
+        images: isEdit
+          ? [...(prev.images || []), ...uploaded].slice(0, 5)
+          : uploaded,
       }));
     } catch (error) {
       setErrors((prev) => ({
@@ -170,30 +270,65 @@ const AddProduct = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (validateForm()) {
       try {
-        const { seller, contact, urgency, ...rest } = formData;
-        await productService.create({
+        const { seller, contact, urgencyInput, ...rest } = formData;
+        const { urgency, urgencyNote } = parseUrgencyInput(urgencyInput);
+        const pickupTrim = (formData.pickupLocation || "").trim().slice(0, 80);
+        const categoryTrim = formData.category.trim();
+        const conditionTrim = formData.condition.trim();
+        const payloadBase = {
           ...rest,
+          category: categoryTrim,
+          condition: conditionTrim,
           price: parseFloat(formData.price),
-          pickupLocation: formData.pickupLocation?.trim() || undefined,
-          urgency: urgency === 'none' ? undefined : urgency,
-        });
-        alert('Product listed successfully!');
-        navigate('/products');
+          pickupLocation: pickupTrim,
+          negotiable: formData.negotiable,
+          urgency,
+          urgencyNote: urgencyNote || "",
+        };
+        if (isEdit) {
+          await productService.update(editProductId, payloadBase);
+          alert("Listing updated.");
+          navigate(`/product/${editProductId}`);
+        } else {
+          await productService.create({
+            ...payloadBase,
+            pickupLocation: pickupTrim || undefined,
+          });
+          alert("Product listed successfully!");
+          navigate("/products");
+        }
       } catch (error) {
-        alert(error.response?.data?.message || 'Failed to create product');
+        alert(
+          error.response?.data?.message ||
+            (isEdit ? "Failed to update listing" : "Failed to create product")
+        );
       }
     }
   };
+
+  if (isEdit && (authLoading || editHydrating)) {
+    return (
+      <div className="add-product">
+        <div className="container">
+          <p className="edit-loading-msg">Loading your listing…</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="add-product">
       <div className="container">
         <div className="page-header">
-          <h1>List Your Product</h1>
-          <p>Share your items with fellow students and make some extra money</p>
+          <h1>{isEdit ? "Edit your listing" : "List Your Product"}</h1>
+          <p>
+            {isEdit
+              ? "Update details or photos — changes save to the same listing."
+              : "Share your items with fellow students and make some extra money"}
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="product-form">
@@ -232,63 +367,95 @@ const AddProduct = () => {
 
               <div className="form-group">
                 <label htmlFor="category">Category *</label>
-                <select
+                <input
+                  type="text"
                   id="category"
                   name="category"
                   value={formData.category}
                   onChange={handleChange}
-                >
-                  {CATEGORIES.map(category => (
-                    <option key={category} value={category}>{category}</option>
+                  list="addproduct-dl-category"
+                  placeholder="e.g. Notes — or type your own"
+                  maxLength={40}
+                  autoComplete="off"
+                  className={errors.category ? 'error' : ''}
+                />
+                <datalist id="addproduct-dl-category">
+                  {CATEGORIES.map((c) => (
+                    <option key={c} value={c} />
                   ))}
-                </select>
+                </datalist>
+                <span className="field-hint">Pick a suggestion or type any category (2–40 characters).</span>
+                {errors.category && <span className="error-message">{errors.category}</span>}
               </div>
 
               <div className="form-group">
                 <label htmlFor="condition">Condition *</label>
-                <select
+                <input
+                  type="text"
                   id="condition"
                   name="condition"
                   value={formData.condition}
                   onChange={handleChange}
-                >
-                  {conditions.map(condition => (
-                    <option key={condition} value={condition}>{condition}</option>
+                  list="addproduct-dl-condition"
+                  placeholder="e.g. Good — or describe your own"
+                  maxLength={40}
+                  autoComplete="off"
+                  className={errors.condition ? 'error' : ''}
+                />
+                <datalist id="addproduct-dl-condition">
+                  {conditions.map((c) => (
+                    <option key={c} value={c} />
                   ))}
-                </select>
+                </datalist>
+                <span className="field-hint">Suggestions from the list or your own wording.</span>
+                {errors.condition && <span className="error-message">{errors.condition}</span>}
               </div>
             </div>
 
             <div className="form-row">
               <div className="form-group">
-                <label htmlFor="urgency">Listing urgency (optional)</label>
-                <select
-                  id="urgency"
-                  name="urgency"
-                  value={formData.urgency}
+                <label htmlFor="urgencyInput">Listing urgency (optional)</label>
+                <input
+                  type="text"
+                  id="urgencyInput"
+                  name="urgencyInput"
+                  value={formData.urgencyInput}
                   onChange={handleChange}
-                >
-                  {urgencyOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
+                  list="addproduct-dl-urgency"
+                  placeholder="Preset or your own short tag"
+                  maxLength={120}
+                  autoComplete="off"
+                />
+                <datalist id="addproduct-dl-urgency">
+                  {urgencySuggestions.map((u) => (
+                    <option key={u} value={u} />
                   ))}
-                </select>
+                </datalist>
+                <span className="field-hint">
+                  Choose a preset, or type a custom line (shows on your listing when not a preset).
+                </span>
               </div>
               <div className="form-group">
                 <label htmlFor="pickupLocation">Pickup / meet point</label>
-                <select
+                <input
+                  type="text"
                   id="pickupLocation"
                   name="pickupLocation"
                   value={formData.pickupLocation}
                   onChange={handleChange}
-                >
-                  {pickupOptions.map((opt) => (
-                    <option key={opt.value || "none"} value={opt.value}>
-                      {opt.label}
-                    </option>
+                  list="addproduct-dl-pickup"
+                  placeholder="Leave blank for not specified, or type a spot"
+                  maxLength={80}
+                  autoComplete="off"
+                  className={errors.pickupLocation ? 'error' : ''}
+                />
+                <datalist id="addproduct-dl-pickup">
+                  {PICKUP_SUGGESTIONS.map((p) => (
+                    <option key={p} value={p} />
                   ))}
-                </select>
+                </datalist>
+                <span className="field-hint">Campus spots — or any short meet-up detail.</span>
+                {errors.pickupLocation && <span className="error-message">{errors.pickupLocation}</span>}
               </div>
               <div className="form-group form-group-checkbox">
                 <label className="checkbox-label">
@@ -305,7 +472,7 @@ const AddProduct = () => {
               </div>
             </div>
 
-            <div className="form-group">
+            <div className="form-group form-group-description">
               <label htmlFor="description">Description *</label>
               <textarea
                 id="description"
@@ -356,18 +523,21 @@ const AddProduct = () => {
 
           <div className="form-section">
             <h2>Product Preview</h2>
-            <div className="form-group">
+            <div className="form-group form-group-file">
               <label htmlFor="images">Product Images *</label>
               <input
                 type="file"
                 id="images"
+                name="images"
                 accept="image/*"
                 multiple
                 onChange={handleImageUpload}
+                className="input-file-native"
               />
               <span className="upload-hint">
-                Upload up to 5 images, max 15MB each. Preview appears as soon as you pick
-                files; we then upload them to the server.
+                {isEdit
+                  ? "Add more photos (up to 5 total) — new uploads are appended to your existing images."
+                  : "Upload up to 5 images, max 15MB each. Preview appears as soon as you pick files; we then upload them to the server."}
               </span>
               {uploading && <span className="upload-status">Uploading to server…</span>}
               {errors.images && <span className="error-message">{errors.images}</span>}
@@ -416,11 +586,15 @@ const AddProduct = () => {
           </div>
 
           <div className="form-actions">
-            <button type="button" onClick={() => navigate('/')} className="btn btn-secondary">
+            <button
+              type="button"
+              onClick={() => navigate(isEdit ? `/product/${editProductId}` : "/products")}
+              className="btn btn-secondary"
+            >
               Cancel
             </button>
             <button type="submit" className="btn btn-primary" disabled={uploading}>
-              {uploading ? 'Please wait...' : 'List Product'}
+              {uploading ? "Please wait…" : isEdit ? "Save changes" : "List Product"}
             </button>
           </div>
         </form>

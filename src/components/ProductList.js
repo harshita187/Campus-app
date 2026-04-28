@@ -3,7 +3,8 @@ import { Link, useSearchParams } from "react-router-dom";
 import ProductCard from "./ProductCard";
 import ProductQuickViewModal from "./ProductQuickViewModal";
 import { productService } from "../services/productService";
-import { FiFilter, FiSearch, FiSliders, FiPackage, FiZap } from "react-icons/fi";
+import { useAuth } from "../context/AuthContext";
+import { FiFilter, FiSearch, FiSliders, FiPackage, FiZap, FiMapPin } from "react-icons/fi";
 import "./ProductList.css";
 
 const CATEGORY_OPTIONS = [
@@ -47,6 +48,7 @@ function parsePriceInput(raw) {
 }
 
 const ProductList = () => {
+  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialCategory = searchParams.get("category");
   const initialSearch = searchParams.get("q") || "";
@@ -57,6 +59,11 @@ const ProductList = () => {
   const initialMax = searchParams.get("maxPrice") || "";
   const initialMine =
     searchParams.get("mine") === "1" || searchParams.get("mine") === "true";
+  const rawCampus = searchParams.get("campus") || "";
+  const campusQParam = searchParams.get("campusQ") || "";
+  const initialCampusScope =
+    rawCampus === "my_college" || rawCampus === "nearby" ? rawCampus : "";
+  const initialCampusQ = initialCampusScope ? campusQParam : campusQParam || rawCampus || "";
 
   const [searchTerm, setSearchTerm] = useState(initialSearch);
   const [selectedCategory, setSelectedCategory] = useState(
@@ -72,6 +79,8 @@ const ProductList = () => {
   const [minPrice, setMinPrice] = useState(initialMin);
   const [maxPrice, setMaxPrice] = useState(initialMax);
   const [mineOnly, setMineOnly] = useState(initialMine);
+  const [campusScope, setCampusScope] = useState(initialCampusScope);
+  const [campusNameQuery, setCampusNameQuery] = useState(initialCampusQ);
 
   const [products, setProducts] = useState([]);
   const [page, setPage] = useState(Number(searchParams.get("page")) || 1);
@@ -100,6 +109,8 @@ const ProductList = () => {
     urgencyFilter,
     minPrice,
     maxPrice,
+    campusScope,
+    campusNameQuery,
   ]);
 
   useEffect(() => {
@@ -113,6 +124,13 @@ const ProductList = () => {
     const nextPage = Number(searchParams.get("page")) || 1;
     const nextMine =
       searchParams.get("mine") === "1" || searchParams.get("mine") === "true";
+    const nextRawCampus = searchParams.get("campus") || "";
+    const nextScope =
+      nextRawCampus === "my_college" || nextRawCampus === "nearby" ? nextRawCampus : "";
+    const nextCampusQ =
+      nextRawCampus === "my_college" || nextRawCampus === "nearby"
+        ? searchParams.get("campusQ") || ""
+        : searchParams.get("campusQ") || nextRawCampus || "";
 
     setSearchTerm(nextSearch);
     setSelectedCategory(
@@ -126,6 +144,8 @@ const ProductList = () => {
     setMinPrice(nextMin);
     setMaxPrice(nextMax);
     setMineOnly(nextMine);
+    setCampusScope(nextScope);
+    setCampusNameQuery(nextCampusQ);
     setPage(nextPage);
   }, [searchParams]);
 
@@ -140,6 +160,11 @@ const ProductList = () => {
     if (maxPrice.trim()) params.maxPrice = maxPrice.trim();
     if (page > 1) params.page = String(page);
     if (mineOnly) params.mine = "1";
+    if (campusScope === "my_college" || campusScope === "nearby") {
+      params.campus = campusScope;
+    } else if (campusNameQuery.trim()) {
+      params.campusQ = campusNameQuery.trim();
+    }
     setSearchParams(params, { replace: true });
   }, [
     page,
@@ -152,6 +177,8 @@ const ProductList = () => {
     urgencyFilter,
     minPrice,
     maxPrice,
+    campusScope,
+    campusNameQuery,
   ]);
 
   useEffect(() => {
@@ -166,7 +193,7 @@ const ProductList = () => {
         hi = t;
       }
       try {
-        const data = await productService.list({
+        const listParams = {
           q: searchTerm || undefined,
           category: selectedCategory === "All" ? undefined : selectedCategory,
           sort: sortBy,
@@ -177,7 +204,17 @@ const ProductList = () => {
           page,
           limit: 12,
           mine: mineOnly ? "1" : undefined,
-        });
+        };
+        if (!mineOnly) {
+          if (campusScope === "my_college" || campusScope === "nearby") {
+            listParams.collegeScope = campusScope;
+          } else {
+            listParams.collegeScope = "all";
+            const cq = campusNameQuery.trim();
+            if (cq) listParams.campusQ = cq;
+          }
+        }
+        const data = await productService.list(listParams);
         setProducts(data.items || []);
         setTotalProducts(data.total || 0);
         setTotalPages(
@@ -185,7 +222,16 @@ const ProductList = () => {
             Math.max(1, Math.ceil((data.total || 0) / (data.limit || 12)))
         );
       } catch (err) {
-        setError(err.response?.data?.message || "Failed to load products");
+        const msg = err.response?.data?.message || "Failed to load products";
+        if (
+          err.response?.status === 401 &&
+          (campusScope === "my_college" || campusScope === "nearby")
+        ) {
+          setCampusScope("");
+          setError(`${msg} Showing all campuses instead.`);
+        } else {
+          setError(msg);
+        }
       } finally {
         setLoading(false);
       }
@@ -203,6 +249,8 @@ const ProductList = () => {
     urgencyFilter,
     minNum,
     maxNum,
+    campusScope,
+    campusNameQuery,
   ]);
 
   useEffect(() => {
@@ -248,7 +296,9 @@ const ProductList = () => {
     Boolean(urgencyFilter) ||
     sortBy !== "newest" ||
     Boolean(minPrice.trim()) ||
-    Boolean(maxPrice.trim());
+    Boolean(maxPrice.trim()) ||
+    Boolean(campusScope) ||
+    Boolean(campusNameQuery.trim());
 
   const sliderMinVal = minNum ?? 0;
   const sliderMaxVal = maxNum ?? PRICE_SLIDER_CEILING;
@@ -261,7 +311,7 @@ const ProductList = () => {
           <p>
             {mineOnly
               ? "Products you’ve posted—edit or share links from the product page."
-              : "Search smarter, compare faster, and buy safely within campus."}
+              : "Browse from students across campuses—filter by school, yours only, or nearby."}
           </p>
         </div>
 
@@ -316,6 +366,66 @@ const ProductList = () => {
               </ul>
             ) : null}
           </div>
+
+          {!mineOnly ? (
+            <div className="campus-filter-block" aria-label="Campus filters">
+              <div className="campus-filter-row campus-filter-row--scope">
+                <span className="campus-filter-label">
+                  <FiMapPin aria-hidden />
+                  Campus
+                </span>
+                <select
+                  className="filter-select campus-filter-select"
+                  value={campusScope}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setCampusScope(v);
+                    if (v === "my_college" || v === "nearby") setCampusNameQuery("");
+                  }}
+                  aria-label="Campus scope"
+                >
+                  <option value="">All campuses (search below)</option>
+                  <option
+                    value="my_college"
+                    disabled={!user}
+                    title={!user ? "Sign in to use this filter" : ""}
+                  >
+                    My campus only
+                  </option>
+                  <option
+                    value="nearby"
+                    disabled={!user}
+                    title={!user ? "Sign in to use this filter" : ""}
+                  >
+                    My campus + nearby
+                  </option>
+                </select>
+              </div>
+              <div className="campus-filter-row campus-filter-row--text">
+                <label className="campus-name-filter-label" htmlFor="campus-name-filter">
+                  Campus name contains
+                </label>
+                <input
+                  id="campus-name-filter"
+                  type="search"
+                  className="campus-name-filter-input"
+                  placeholder="e.g. IIT Delhi, state university…"
+                  value={campusNameQuery}
+                  onChange={(e) => {
+                    setCampusNameQuery(e.target.value);
+                    if (e.target.value.trim()) setCampusScope("");
+                  }}
+                  maxLength={80}
+                  disabled={campusScope === "my_college" || campusScope === "nearby"}
+                  title={
+                    campusScope === "my_college" || campusScope === "nearby"
+                      ? "Clear “My campus” or “Nearby” to search by name"
+                      : undefined
+                  }
+                />
+              </div>
+            </div>
+          ) : null}
 
           <div className="category-pills" role="group" aria-label="Category">
             <span className="category-pills-label">
