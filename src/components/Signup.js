@@ -12,12 +12,8 @@ import {
 } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
 import { productService } from "../services/productService";
+import { FALLBACK_CAMPUS_SUGGESTIONS } from "../constants/campusSuggestions";
 import "./Signup.css";
-
-function formatCollegeOption(c) {
-  if (!c?.name) return "";
-  return `${c.name.trim()}${c.city ? ` — ${c.city.trim()}` : ""}`;
-}
 
 function formatCollegeOptionLabel(c) {
   if (!c?.name) return "";
@@ -61,7 +57,8 @@ const Signup = () => {
     campusName: "",
     role: "both",
   });
-  const [collegesMeta, setCollegesMeta] = useState(null);
+  /** Always at least FALLBACK_* so Vercel works even if /products/meta/colleges fails. */
+  const [campusSuggestions, setCampusSuggestions] = useState(FALLBACK_CAMPUS_SUGGESTIONS);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -70,9 +67,11 @@ const Signup = () => {
     (async () => {
       try {
         const data = await productService.getCollegesMeta();
-        if (!cancelled && data?.colleges?.length) setCollegesMeta(data);
+        if (!cancelled && data?.colleges?.length) {
+          setCampusSuggestions(data.colleges);
+        }
       } catch {
-        if (!cancelled) setCollegesMeta(null);
+        /* keep FALLBACK_CAMPUS_SUGGESTIONS */
       }
     })();
     return () => {
@@ -241,24 +240,24 @@ const Signup = () => {
                 value={formData.campusName}
                 onChange={handleChange}
                 placeholder="Type any college or university name"
-                list={collegesMeta?.colleges?.length ? datalistId : undefined}
+                list={campusSuggestions.length ? datalistId : undefined}
                 autoComplete="organization"
                 maxLength={120}
                 required
               />
             </div>
-            {collegesMeta?.colleges?.length ? (
+            {campusSuggestions.length ? (
               <datalist id={datalistId}>
-                {collegesMeta.colleges.map((c) => (
+                {campusSuggestions.map((c) => (
                   <option key={c.id} value={formatCollegeOptionLabel(c)} />
                 ))}
               </datalist>
             ) : null}
-            {collegesMeta?.colleges?.length ? (
+            {campusSuggestions.length ? (
               <div className="signup-campus-quick">
                 <span className="signup-campus-quick-label">Quick pick (optional)</span>
                 <div className="signup-campus-pills" role="list">
-                  {collegesMeta.colleges.map((c) => {
+                  {campusSuggestions.map((c) => {
                     const label = formatCollegeOptionLabel(c);
                     return (
                       <button
