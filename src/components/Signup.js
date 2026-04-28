@@ -14,6 +14,16 @@ import { useAuth } from "../context/AuthContext";
 import { productService } from "../services/productService";
 import "./Signup.css";
 
+function formatCollegeOption(c) {
+  if (!c?.name) return "";
+  return `${c.name.trim()}${c.city ? ` — ${c.city.trim()}` : ""}`;
+}
+
+function formatCollegeOptionLabel(c) {
+  if (!c?.name) return "";
+  return c.city ? `${c.name} — ${c.city}` : c.name;
+}
+
 const ROLE_OPTIONS = [
   {
     value: "buyer",
@@ -76,6 +86,11 @@ const Signup = () => {
       ...prev,
       [name]: value,
     }));
+    setError("");
+  };
+
+  const applyCampusSuggestion = (label) => {
+    setFormData((prev) => ({ ...prev, campusName: label }));
     setError("");
   };
 
@@ -235,9 +250,32 @@ const Signup = () => {
             {collegesMeta?.colleges?.length ? (
               <datalist id={datalistId}>
                 {collegesMeta.colleges.map((c) => (
-                  <option key={c.id} value={`${c.name}${c.city ? ` — ${c.city}` : ""}`} />
+                  <option key={c.id} value={formatCollegeOptionLabel(c)} />
                 ))}
               </datalist>
+            ) : null}
+            {collegesMeta?.colleges?.length ? (
+              <div className="signup-campus-quick">
+                <span className="signup-campus-quick-label">Quick pick (optional)</span>
+                <div className="signup-campus-pills" role="list">
+                  {collegesMeta.colleges.map((c) => {
+                    const label = formatCollegeOptionLabel(c);
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        className="signup-campus-pill"
+                        onClick={() => applyCampusSuggestion(label)}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="signup-campus-quick-hint">
+                  Tap one to fill the box, or type any other institute name above.
+                </p>
+              </div>
             ) : null}
           </div>
 
