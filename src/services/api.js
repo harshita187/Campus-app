@@ -1,5 +1,7 @@
 import axios from "axios";
 
+const DEPLOYED_API_URL = "https://campus-bazaar-472166277975.asia-south1.run.app/api";
+
 const getApiUrl = () => {
   const explicitApiUrl = process.env.REACT_APP_API_URL?.trim();
   const forceLocalApi = process.env.REACT_APP_FORCE_LOCAL_API !== "false";
@@ -21,15 +23,15 @@ const getApiUrl = () => {
     return u;
   }
 
-  const fallback = `http://${hostname}:5001/api`;
   if (!isLocalhost) {
     console.warn(
       "[Campus Market] REACT_APP_API_URL is missing at build time. API calls use",
-      fallback,
-      "— set REACT_APP_API_URL in Vercel (e.g. https://your-backend.run.app) and redeploy."
+      DEPLOYED_API_URL,
+      "— set REACT_APP_API_URL in your frontend host if this backend URL changes."
     );
+    return DEPLOYED_API_URL;
   }
-  return fallback;
+  return `http://${hostname}:5001/api`;
 };
 
 const API_URL = getApiUrl();
